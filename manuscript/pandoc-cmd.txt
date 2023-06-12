@@ -1,0 +1,3 @@
+The command to generate the manuscript.pdf file is:
+
+pandoc --defaults=sn-config.yaml

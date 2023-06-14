@@ -44,4 +44,5 @@ course of each scenario (2 tables)
 - [python](https://python.org) programming language and [tkinter](https://docs.python.org/3/library/tk.html) graphical user interface.
 - [github](https://github.com/lrtpzd/codix-suite) version control and collaboration can be used via the [Desktop application](https://desktop.github.com/) (but only for Windows and MacOS) or via the [command line interface](https://cli.github.com/).
   **Remarque:** s'identifier avec gh puis utiliser [git](https://git-scm.com) car `git` est général alors que `gh` est spécifique de GitHub.
+  Un modèle de "branching": [A successful Git branching model](https://nvie.com/posts/a-successful-git-branching-model/)
 - [pyinstaller](https://pyinstaller.org/en/stable/operating-mode.html) to make standalone distribution / release.

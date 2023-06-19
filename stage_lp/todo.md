@@ -1,1 +1,2 @@
 - redimensionnement des fenêtres (low)
+- Fichier de config (low)

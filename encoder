@@ -1,0 +1,562 @@
+#!/usr/bin/env python3
+
+"""
+Main application module
+
+.. todo:: All the "print" should be moved to some logging process...
+"""
+
+import os
+import json
+import time
+import tkinter
+import tkinter.filedialog
+import tkinter.messagebox
+
+# tk colors : https://www.tcl.tk/man/tcl/TkCmd/colors.html
+
+from pathlib import Path
+from datetime import datetime # datetime.now().strftime('%c')
+
+import utils as U
+
+from infoframe import InfoFrame
+from playercontrol import PlayerControl
+from applicationmenu import ApplicationMenu
+from codingframe import FrameworkFrame
+from newcode import NewCode
+
+__version__ = '0.3.0'
+__author__ = 'L. Pezard'
+__licence__ = 'GPL'
+
+class Application(tkinter.Tk):
+    """
+    Main codix application class
+    """
+    def __init__(self):
+        tkinter.Tk.__init__(self)
+        self.resizable(True, True)
+        # Menu
+        self.menu = ApplicationMenu(master=self)
+        self['menu'] = self.menu # why is this mandatory?
+        self.init_variables()
+
+    def init_variables(self):
+
+        # variables related to files
+        self.media_loaded = False
+        self.code_loaded = False
+        self.data_loaded = False
+        self.code_file = tkinter.StringVar()
+        self.media_file = tkinter.StringVar()
+        self.data_file = tkinter.StringVar()
+
+        # variables related to player
+        self.player_mode = tkinter.StringVar(value='')
+        self.period_display = tkinter.StringVar(value='')
+        self.current_time = None # in ms
+        self.current_step = None
+        self.max_step = None
+        self.max_time = None # in ms. will be overwritten when media is read
+        self.time_display = tkinter.StringVar(value='')
+# FIXME: what is the difference between: is_recording and is_set_start_time?
+#        self.is_recording = False
+#        self.is_set_start_time = False
+
+        self.container = {'history': [], # [(date, observer, comment), ...]
+                          'media': '', # path for the media file
+                          'code': {}, # dictionary from the code file
+                          'times': [], # sample times (in ms) vlc works with milliseconds
+                          'comments': [], # sample comments
+                          'data': {}} # data
+
+        # self.scenario = None
+
+# Menu related functions
+#-----------------------
+
+    def new_code(self):
+        """Application for defining a new coding framework.
+        """
+        self.newcode = NewCode(parent=self)
+        self.newcode.grid(row=1, column=1, sticky=U.sticky_all)
+        self.menu.disable_actions()
+        # self.scenario = 'newcode'
+
+    def start_session(self):
+        self.info = InfoFrame(parent=self, 
+                              states=(tkinter.NORMAL,    # load code
+                                      tkinter.DISABLED,  # load media
+                                      tkinter.DISABLED)) # load data
+        self.info.grid(row=1, column=1, sticky=U.sticky_all)
+        self.menu.disable_actions()
+        # self.scenario = 'newsession'
+
+    def retrieve_session(self):
+        self.info = InfoFrame(parent=self, 
+                              states=(tkinter.DISABLED, # load code
+                                      tkinter.DISABLED, # load media
+                                      tkinter.NORMAL))  # load data
+        self.info.grid(row=1, column=1, sticky=U.sticky_all)
+        self.menu.disable_actions()
+        # self.scenario = 'resumesession'
+
+    def free_view(self):
+        self.info = InfoFrame(parent=self, 
+                              states=(tkinter.DISABLED, # load code
+                                      tkinter.NORMAL, # load media
+                                      tkinter.DISABLED))  # load data
+        self.info.grid(row=1, column=1, sticky=U.sticky_all)
+        self.menu.disable_actions()
+        # self.scenario = 'freeview'
+
+    def reset(self):
+        """Reset the file menu and all the current variables.
+        """
+        self.info.destroy()
+        self.framework.destroy()
+        self.control.destroy()
+        self.init_variables()
+
+    def help_browser(self):
+        self.notimplemented()
+
+    def aboutHandler(self):
+        self.notimplemented()
+
+# Information frame related functions
+#------------------------------------
+
+    def ask_code(self):
+        """Loading files defining a coding framework.
+        Now only supports the new .jod (json) files
+        """
+        fname = tkinter.filedialog.askopenfilename(filetypes=[('New code', '*.jod')],
+                                                   initialdir=os.path.expanduser('~'))
+        if U.is_valid_filename(fname, ext='.jod'):
+            self.read_code(fname)
+        else:
+            tkinter.messagebox.showinfo('Cannot load', 'Cannot load %s file' % fname)
+
+    def read_code(self, fname):
+
+        with open(fname, 'r') as ff:
+            encoding = json.load(ff)
+
+        self.container['code'] = encoding
+        self.parse_code(encoding)
+        self.code_file.set(fname)
+        self.code_loaded = True
+        self.configure_interface()
+
+    def parse_code(self, encoding):
+
+        self.get_mode_and_period(encoding)
+
+        sites = encoding['sites']
+        codes = encoding['codes']
+        codeframe = {}
+        for site, scodes in encoding['sites'].items():
+            data_site = {}
+            code_site = {}
+            for lcode in scodes:
+                data_site.update({lcode: {'alphabet': codes[lcode], 'seq': []}})
+                code_site.update({lcode: codes[lcode]})
+            self.container['data'].update({site: data_site})
+            codeframe[site] = code_site
+
+        self.framework = FrameworkFrame(application=self, encoding=codeframe)
+        self.framework.grid(row=2, column=0, sticky=U.sticky_all)
+
+    
+    def ask_media(self):
+        """Load media file
+        """
+        fname = tkinter.filedialog.askopenfilename(
+                                   initialdir=os.path.expanduser('~'))
+        if U.is_valid_filename(fname):
+            self.read_media(fname)
+        else:
+            tkinter.messagebox.showinfo('Cannot load', 'Cannot load %s file' % fname)
+
+    def read_media(self, fname):
+        # create a control frame
+        # player mode and period not set before
+        if self.player_mode.get() == '': # free viewing
+            self.player_mode.set('continuous')
+        if self.period_display.get() == '': # free viewing
+            self.period_display.set('-')
+
+        self.control = PlayerControl(application=self)
+        self.control.grid(row=1, column=0, sticky=U.sticky_all)
+        
+        self.control.player.set_mrl(fname)
+        self.media_file.set(fname)
+
+        # This is a hack for time initialization.
+        # reads 1s and then goes back to 0 
+        self.control.player.play()
+        time.sleep(1) # 0.1 is too short I loose sound!?
+        self.max_time = self.control.player.get_length() # a long in ms
+        self.control.player.set_pause(do_pause=1)
+        self.control.set_time(0, 'Initial time')
+        if self.max_time == -1:
+            tkinter.messagebox.showinfo('Cannot get max time', 
+                                  'Cannot get max time; this may cause problems')
+        print('Length of media file: ', self.max_time, ' ms.')
+
+        self.media_loaded = True
+        self.configure_interface()
+    
+    def ask_data(self):
+        # raise NotImplementedError()
+        fname = tkinter.filedialog.askopenfilename(filetypes=[('Codix data file', '*.cdx')],
+                                                   initialdir=os.path.expanduser('~'))
+        if U.is_valid_filename(fname): 
+            self.read_data(fname)
+        else:
+            tkinter.messagebox.showinfo('Cannot load', 'Cannot load %s file' % fname)
+
+    def read_data(self, fname):
+        with open(fname, 'r') as ff:
+            data = json.load(ff)
+        self.data_file.set(fname)
+        self.code_file.set('Retrieved from data file')
+        self.container.update(data)
+        self.parse_code(self.container['code'])
+        self.code_loaded = True
+        print(self.container)
+
+        # Quickly deals with non existent file
+        # First: load media
+        mfile = Path(self.container['media'])
+        if mfile.is_file():
+            self.read_media(self.container['media'])
+        else:
+            tkinter.messagebox.showinfo('Problem with media file', 
+                                        'Cannot find media file')
+        self.data_loaded = True
+        self.configure_interface()
+        self.start_processing()
+
+    def save(self):
+        filename = self.data_file.get()
+        datafile = open(filename, 'w')
+        json.dump(self.container, datafile)
+        datafile.close()
+        print('Data saved in %s' % filename)
+    
+    def save_as(self):
+        filename = tkinter.filedialog.asksaveasfilename()
+        # FIXME: does not work if file already exists
+        if U.is_valid_filename(filename):
+            datafile = open(filename, 'w')
+            json.dump(self.container, datafile)
+            datafile.close()
+            print('Data saved in %s' % filename)
+            self.data_file.set(filename)
+            self.menu.fileMenu.entryconfig(8, state=tkinter.NORMAL) # Save
+            self.menu.fileMenu.entryconfig(9, state=tkinter.DISABLED) # Save as
+        else:
+            tkinter.messagebox.showinfo('File not saved', 'File has not been saved')
+
+    def save_data(self):
+        if self.data_file.get() == '':
+            self.save_as()
+        else:
+            self.save()
+    
+    def configure_interface(self):
+
+        if self.code_loaded:
+            self.info.code_load.config(state=tkinter.DISABLED)
+            print('media: ', self.media_loaded)
+            if not self.media_loaded:
+                self.info.media_load.config(state=tkinter.NORMAL)
+            else:
+                self.info.data_load.config(state=tkinter.DISABLED)
+
+                self.control.play_but.config(state=tkinter.NORMAL)
+                self.control.back_but.config(state=tkinter.NORMAL)
+                self.control.forward_but.config(state=tkinter.NORMAL)
+                self.control.period_ent.config(state=tkinter.DISABLED)
+
+        if self.media_loaded:
+            self.info.media_load.config(state=tkinter.DISABLED)
+            self.info.code_load.config(state=tkinter.DISABLED)
+            self.info.data_load.config(state=tkinter.DISABLED)
+
+        if self.data_loaded:
+            self.info.data_load.config(state=tkinter.DISABLED)
+            self.info.code_load.config(state=tkinter.DISABLED)
+            self.info.media_load.config(state=tkinter.DISABLED)
+
+# Coding framework related functions
+#-----------------------------------
+    def start_processing(self):
+        """
+        Start processing and fill the container with:
+        - observer, date, comments
+        - start time
+        - code and media file names
+        - encoding specifications 
+        """
+        observer = self.framework.spec_frame.person.get()
+        if observer == '':
+            tkinter.messagebox.showinfo('Please identify', 
+                                  'Please identify yourself')
+        else:
+            date = datetime.now().strftime('%c')
+            self.framework.spec_frame.timestamp.set(date)
+            comment = self.framework.spec_frame.comment.get()
+
+            self.container['history'].append((date, observer, comment))
+
+        if self.data_loaded: # resume session
+            self.control.set_time(self.container['times'][0], msg='Start processing')
+            self.current_step = 0
+            self.max_step = len(self.container['times'])
+            
+        else: # starts a new session
+            self.container['media'] = self.media_file.get()
+
+            self.get_mode_and_period(self.container['code'])
+            self.framework.disable_specifications()
+
+            mode = self.player_mode.get()
+            if mode == 'regular': # regular sampling
+                period = self.control.get_period()
+                if period is not None:
+                    self.freeze()
+                print('period: ', period)
+                assert(len(self.container['times']) == 0)
+                self.container['times'].append(self.current_time)
+                self.max_step = len(self.container['times']) - 1
+                self.current_step = 0
+                self.data_loaded = True
+                # self.framework.disable_codes()
+                print(self.container)
+                self.info.data_save.configure(state=tkinter.NORMAL)
+#                    if self.current_step == 0 or \
+#                       self.control.player.get_state() == 3: # playing
+#                    while self.control.player.get_state() != 5: # 5: Stopped
+#                        print(self.control.player.get_state())
+#                        # time.sleep(5)
+#                    if self.control.player.get_state() == 4: # 4: Paused
+#                        self.current_step += 1
+#                        print("current step: ", self.current_step)
+#                        self.framework.enable_codes()
+#                        #    print(self.container)
+            else:
+                raise NotImplementedError('Continuous coding is not implemented')
+#
+#                # self.current_step = 0
+#
+##            if not self.data_loaded:
+##                self.container['times'][0] = self.current_time
+##                self.is_set_start_time = True
+##                self.control.set_time(self.current_time, msg='Start processing')
+##            else:
+##                self.control.set_time(self.container['times'][0], msg='Start processing')
+##            self.set_step(0)
+##            self.is_recording = True
+##
+##            self.control.forward_but.configure(state=tkinter.NORMAL)
+##            self.control.back_but.configure(state=tkinter.NORMAL)
+##
+##            self.framework.disable_specifications()
+##            self.info.code_load.configure(state=tkinter.DISABLED)
+##            self.info.media_load.configure(state=tkinter.DISABLED)
+##   #         self.menu.fileMenu.entryconfig(8, state=Tkinter.NORMAL) # Save
+##            self.menu.fileMenu.entryconfig(9, state=tkinter.NORMAL) # Save as
+##            self.info.data_save.configure(state=tkinter.NORMAL)
+##                self.period_display.set(str(period))
+##                self.dt = int(float(period) * 1000)
+##                print('dt: ', self.dt)
+##                self.control.step_check.select()
+##                self.control.pause_but.configure(state=tkinter.DISABLED)
+##                # can't go back 
+##                self.control.back_but.configure(state=tkinter.DISABLED)
+#                else:
+#                    raise NotImplementedError('Continuous coding is not implemented')
+##                self.player_mode.set('continuous')
+##                self.control.step_check.deselect()
+##                self.control.back_but.configure(state=Tkinter.DISABLED)
+##            step = self.framework.spec_frame.step.get()
+##            self.period_display.set(step)
+##           #  self.freeze_step()
+#
+#                print('period: ', period)
+#                self.data_loaded = True
+#                assert(len(self.container['times']) == 0)
+#                self.container['times'].append(self.current_time)
+#                # self.current_step = 0
+#
+##            if not self.data_loaded:
+##                self.container['times'][0] = self.current_time
+##                self.is_set_start_time = True
+##                self.control.set_time(self.current_time, msg='Start processing')
+##            else:
+##                self.control.set_time(self.container['times'][0], msg='Start processing')
+##            self.set_step(0)
+##            self.is_recording = True
+##
+##            self.control.forward_but.configure(state=tkinter.NORMAL)
+##            self.control.back_but.configure(state=tkinter.NORMAL)
+##
+##            self.framework.disable_specifications()
+##            self.info.code_load.configure(state=tkinter.DISABLED)
+##            self.info.media_load.configure(state=tkinter.DISABLED)
+##   #         self.menu.fileMenu.entryconfig(8, state=Tkinter.NORMAL) # Save
+##            self.menu.fileMenu.entryconfig(9, state=tkinter.NORMAL) # Save as
+##            self.info.data_save.configure(state=tkinter.NORMAL)
+#            while self.control.player.get_state() != 5: # 5: Stopped
+#               if self.control.player.get_state() == 4: # 4: Paused
+#                   self.framework.enable_codes()
+#                   print(self.container)
+
+    def display_codes(self, step):
+        # self.framework.enable_codes()
+        panellist = self.framework.coding_frame.panels
+        for pan in panellist:
+            # pan.name = recording site
+            for cname, v in pan.coding.items():
+            # cname = code_name
+                sequence = self.container['data'][pan.name][cname]['seq']
+                local_int = sequence[step]
+                local_str = self.int2str[pan.name][cname][local_int]
+                v['var'].set(local_str)
+        comment = self.container['comments'][step]
+        self.framework.coding_frame.comment.set(comment)
+    
+    def erase_codes(self):
+        panellist = self.framework.coding_frame.panels
+        for pan in panellist:
+            # pan.name = recording site
+            for cname, v in pan.coding.items():
+            # cname = code_name
+                v['var'].set('')
+        self.framework.coding_frame.comment.set('')
+
+    def record_state(self):
+        """
+        Record a step
+        """
+        # local "pointers"
+        panellist = self.framework.coding_frame.panels
+        times = self.container['times']
+        comments = self.container['comments']
+
+        mode = self.player_mode.get()
+        if mode == 'regular': # regular sampling
+            if self.current_step < 0: # Should not happen...
+                tkinter.messagebox.showinfo('Before beginning', 'Before beginning')
+                return
+            elif self.current_step > len(times):
+                tkinter.messagebox.showinfo('Discontinuous coding', 
+                                      'Discontinuous coding')
+                return
+            else:
+                # First passage for checking presence of all symbols
+                tmp_symbol = {}
+                for pan in panellist:
+                    tmp_symbol[pan.name] = {}
+                    # print pan.name # rec_site
+                    for cname,v in pan.coding.items():
+                    # k: code_name
+                        symbol = v['var'].get()
+                        # sequence = self.container['data'][pan.name][cname]['seq']
+                        if symbol == '':
+                            tkinter.messagebox.showinfo('Code missing', 'A code is missing')
+                            return
+                        else:
+                            # sequence.append(self.str2int[pan.name][cname][symbol])
+                            tmp_symbol[pan.name][cname] = symbol
+                
+                local_comment = self.framework.coding_frame.comment.get()
+
+                # Seconde passage to record the symbol
+
+                print('ct_step', self.current_step, 'ct_time', self.current_time)
+
+                if self.current_step == len(times):
+                    print('==')
+                    times.append(self.current_time)
+                    comments.append(local_comment)
+                    for pan in panellist:
+                        # print pan.name # rec_site
+                        for cname,v in pan.coding.items():
+                            sequence = self.container['data'][pan.name][cname]['seq']
+                            tsymbol = tmp_symbol[pan.name][cname]
+                            sequence.append(self.str2int[pan.name][cname][tsymbol])
+                else:
+                    print('else')
+                    times[self.current_step] = self.current_time
+                    comments[self.current_step - 1] = local_comment
+                    for pan in panellist:
+                        # print pan.name # rec_site
+                        for cname,v in pan.coding.items():
+                            sequence = self.container['data'][pan.name][cname]['seq']
+                            tsymbol = tmp_symbol[pan.name][cname]
+                            sequence[self.current_step - 1] = self.str2int[pan.name][cname][tsymbol]
+            
+            self.control.play_but.configure(state=tkinter.NORMAL)
+            self.control.back_but.configure(state=tkinter.NORMAL)
+            self.control.forward_but.configure(state=tkinter.NORMAL)
+            try:
+                self.display_codes(self.current_step)
+            except IndexError:
+                self.erase_codes()
+            self.framework.disable_codes()
+            print(self.container)
+            self.save_data()
+
+        else: # continuous coding
+            raise NotImplementedError
+
+    def disable_load_data(self):
+        self.menu.fileMenu.entryconfig(4, state=tkinter.DISABLED)
+        self.info.data_load.config(state=tkinter.DISABLED)
+
+    def disable_load_media(self):
+        self.menu.fileMenu.entryconfig(3, state=tkinter.DISABLED)
+        self.info.media_load.config(state=tkinter.DISABLED)
+    
+    def disable_load_code(self):
+        self.menu.fileMenu.entryconfig(2, state=tkinter.DISABLED)
+        self.info.code_load.config(state=tkinter.DISABLED)
+    
+    def enable_load_data(self):
+        self.menu.fileMenu.entryconfig(4, state=tkinter.NORMAL)
+        self.info.data_load.config(state=tkinter.NORMAL)
+
+    def freeze(self):
+        """ cannot change step
+        """
+        self.control.mode_check.configure(state=tkinter.DISABLED)
+        self.control.period_ent.configure(state=tkinter.DISABLED)
+        self.control.time_ent.configure(state=tkinter.DISABLED)
+
+    def get_mode_and_period(self, encoding):
+        period = encoding['period']
+
+        if period is None:
+            self.player_mode.set("continuous")
+            self.period_display.set('-')
+            tkinter.messagebox.showinfo('Continuous not implemented', 
+                                   'Irregular sampling not implemented')
+            raise NotImplementedError()
+        else:
+            self.player_mode.set("regular")
+            self.period_display.set(str(period))
+
+    def notimplemented(self):
+        tkinter.messagebox.showinfo('Not implemented', 'Not implemented')
+
+
+if __name__ == "__main__":
+    app = Application()
+    app.title('Codix - The Swiss knife for coding behaviors - version: %s'\
+              % __version__)
+    app.mainloop()

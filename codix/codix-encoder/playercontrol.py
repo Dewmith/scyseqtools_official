@@ -33,13 +33,14 @@ class PlayerControl(tkinter.LabelFrame):
         tkinter.LabelFrame.__init__(self, application)
         self.configure(background=ctrl_bg, borderwidth=bd, padx=20, pady=20,
                        relief=relief, text='Control: ', font=('bold',))
-        
+        self.grid(column=1,
+                  row=0)
         # player instance 
         args = ['--no-xlib']
         instance = vlc.Instance(args)
         self.player = instance.media_player_new()
         
-        # Control panel
+        # Control panel
         self.back_but = tkinter.Button(self, text='Back', command=self.backward) 
         self.back_but.grid(row=1, column=0, sticky=tkinter.W)
 
@@ -49,9 +50,6 @@ class PlayerControl(tkinter.LabelFrame):
         self.forward_but = tkinter.Button(self, text='Forward', command=self.forward)
         self.forward_but.grid(row=1, column=2)
        
-        self.stop_but = tkinter.Button(self, text='Stop', command=self.stop)
-        self.stop_but.grid(row=1, column=4)
-
         self.mode_check = tkinter.Checkbutton(self, text='By period of ',
                                               variable=application.player_mode, 
                                               onvalue='regular', offvalue='continuous',
@@ -81,45 +79,63 @@ class PlayerControl(tkinter.LabelFrame):
         
         self.bind('<Button-3>', self.change_color)
 
-    def playpause(self):
-        mode = self._root().player_mode.get()
-        pstate = self.player.get_state()
-        print(mode, pstate)
-        print('Start PP current step: ', self._root().current_step)
-
-        if mode == "continuous":
-            if pstate == 3: # Playing
-                self.player.set_pause(do_pause=1)
-                # self._root().show_time(self.player.get_time())
-                self.set_time(self.player.get_time())
-            elif pstate == 4: # Paused
-                self.player.set_pause(do_pause=0)
-            else:
-                raise ValueError(f'Unknown player state {pstate}') 
+        self._state = ""
         
-        elif mode== "regular":
-            assert(pstate == 4)
+        
+    def step_play(self, dt):
+        self.player.set_pause(do_pause=0)
+        # print 'Start step play: ', self.player.get_time()
+        print('Start step play: ', self._root().current_time)
+        tt = Timer(dt, self.dopause)
+        self.player.play()
+        tt.start()
+
+    def dopause(self):
+        self.player.set_pause(do_pause=1)
+        
+
+    def playpause(self):
+        print("##### play/pause"+ self._state)
+        mode = self._root().player_mode.get()
+        if mode =='regular':
             period = self.get_period()
-            if period is not None:
+            if period is not None :
                 itime = self.player.get_time()
-                print('Start step play: ', itime)
-                self.play_but.config(state=tkinter.DISABLED)
-                self.player.set_pause(do_pause=0)
-                start_time = time.monotonic()
-                while time.monotonic() - start_time < period:
-                    time.sleep(0.01)
-                self.player.set_pause(do_pause=1)
+                self._state = "played"
+                self.config_button(self._state, mode)
+                self.step_play(period)         
+                self.after(int(period*1000))
+                self._state = "notplayed"
+                self.config_button(self._state, mode)
+                self.play_but.update()
                 print('End time: ', self.player.get_time())
                 ftime = itime + int(period*1000)
                 self.set_time(ftime, 'Synchronized time')
                 if self._root().current_step is not None:
                     self._root().current_step += 1
                 print('End PP current step: ', self._root().current_step)
-                self.play_but.config(state=tkinter.NORMAL)
+                print(" ##### fin play regular"+ self._state)
 
-        else:
-            raise ValueError(f'Unknown player mode {mode}') 
-    
+        if mode =='continuous':
+            pstate = self.player.get_state()
+            if self._state == "played" :
+                self.player.set_pause(do_pause=1)
+                self._state = "notplayed"
+                self.config_button(self._state, mode)
+                self.set_time(self.player.get_time())
+
+            elif self._state == "notplayed" or self._state == None :
+                self.player.set_pause(do_pause=0)
+                self.state = "played" 
+                self.config_button(self._state, mode)
+            
+
+            else:
+                raise ValueError(f'Unknown player state {pstate}')
+            print(" ##### fin play continuous"+ self._state)
+
+            
+         
     def backward(self):
         mode = self._root().player_mode.get()
         itime = self.player.get_time()
@@ -256,8 +272,6 @@ class PlayerControl(tkinter.LabelFrame):
 #    def continuous_back(self):
 #        self.notimplemented()
 
-    def stop(self):
-        self.player.stop()
 
 #    def show_time(self, msg=None): 
 #        time = self.player.get_time()
@@ -271,15 +285,72 @@ class PlayerControl(tkinter.LabelFrame):
         """ Handler for mouse click on the modeButton of control panel
         """
         mode = self._root().player_mode.get()
-        print('change mode: ', mode)
         if mode == 'continuous': # ie regular play...
-            self.period_ent.config(state=tkinter.NORMAL)
-            self.back_but.config(state=tkinter.NORMAL)
-            self.forward_but.config(state=tkinter.NORMAL)
+            print('change mode: regular')
+            self._state = "notplayed"
+            self.config_button(self._state, mode)
+
         else:
-            self.period_ent.config(state=tkinter.DISABLED)
-            self.back_but.config(state=tkinter.DISABLED)
-            self.forward_but.config(state=tkinter.DISABLED)
+            print('change mode: continuous')
+            self.config_button(self._state, mode)
+
+            
+
+
+    @property
+    def state(self):
+        return self._state
+    
+    
+    @state.setter
+    def state(self, value):
+        if value == "played" :
+            self.player.set_pause(do_pause=0)
+            self._state = "played"
+        elif value == "notplayed" :
+            self.player.set_pause(do_pause=1)
+            self._state = "notplayed"
+
+
+
+    def config_button(self, state, mode):
+        mode = self._root().player_mode.get()
+        if self._state == "played" :
+            if mode == "continuous" :
+                self.play_but.config(state='normal')
+                self.back_but.config(state='disabled')
+                self.forward_but.config(state='disabled')
+                self.mode_check.config(state='disabled')
+                self.period_ent.config(state='disabled')
+            
+            elif mode == "regular" :
+                self.play_but.config(state='disabled')
+                self.back_but.config(state='disabled')
+                self.forward_but.config(state='disabled')
+                self.mode_check.config(state='disabled')
+                self.period_ent.config(state='disabled')
+                
+        if self._state == "notplayed" :
+            if mode == "continuous" :
+                self.play_but.config(state='normal')
+                self.back_but.config(state='disabled')
+                self.forward_but.config(state='disabled')
+                self.mode_check.config(state='normal')
+                self.period_ent.config(state='disabled')
+
+            elif mode == "regular" :
+                self.play_but.config(state='normal')
+                self.back_but.config(state='normal')
+                self.forward_but.config(state='normal')
+                self.mode_check.config(state='normal')
+                self.period_ent.config(state='normal')
+
+
+
+
+
+
+            
 #        print('End change mode: ', mode)
 
 #        # FIXME: does the first test useful. Tackle this more elegantly?

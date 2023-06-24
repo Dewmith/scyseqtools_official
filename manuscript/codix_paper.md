@@ -1,13 +1,17 @@
 # Introduction {#sec-intro}
 
-Behavioral sciences need tools to convert video recordings to data that
-can be quantified. In this process they need tools that are simple and
-efficient since the burden of behavioral sequences encoding is usually
-heavy.
+Behavioral sciences and psychology need tools to convert video recordings to
+data that can be quantified. In this process they need tools that are simple and
+efficient since the burden of behavioral sequences encoding is usually heavy.
+
+For behavior, one can have automatic video analysis: see @Tchacher @Cohen
+@Others with film analysis
+
+In psychology one should have to take into account both movements and
+linguistics or even face expressions which my 
 
 Although `Codix` has not been advertised earlier it has already been used in a
-series of studies **cite all the studies that used Codix**. As an example we
-will use the mother-infant interaction study as an illustration 
+series of studies **cite all the studies that used Codix**. 
 
 
 Codix has been inspired by the very first version of Cowlog
@@ -26,19 +30,19 @@ and there are also commercial software.
 The Codix interface is deliberately very simple, even spartan. The sequence of
 processing stages ares constraint to simple scenarios to avoid errors.
 
-Codix Encoder is an adapted video player based on VLC
+`Codix-Encoder` is an adapted video player based on VLC. It is based on the
+Python VLC bindings and the Tk-inter library.
 
-Codix Analyzer is a client-server architecture that serve analysis tools
+`Codix-Analyzer` is a client-server architecture that serve analysis tools
 based on the scikits/symbolic library.
-
-[**Do we need to join scikits/symbolic to the paper!?**]{.sans-serif}
 
 Coding is time consuming and people need simple tools that perform the
 most basic operations.
 
-The development philosophy is to provide a tool that do only one thing.
-
-CODIX is based on the Python VLC bindings and the Tk-inter library.
+The development philosophy is inspired from the “unix spirit” to provide a tool
+that is responsible for only one task. Since behavioral video analysis has two
+steps: encoding and analysis, we provide two tools, `codix-encoder` and
+`codix-analyzer`.
 
 
 # Codix suite description {#sec:1}
@@ -58,16 +62,15 @@ architecture.
 ## `codix-encoder`
 
 The initial interface of `codix-encoder` is very simple and allow only three
-operations through the "Actions" menu (see **FigXX**):
+operations through the "Actions" menu (see Fig. [@fig:initmenu]):
+
+![Initial menu of `codix-encoder`](figures/initmenu){#fig:initmenu .class
+width=70%}
 
 1. Define a new encoding framework
 2. Start a new coding session
 3. Resume a previous coding session
 
-The first option suppose that you have already defined an encoding framework.
-If this is not the case, you can use the `New_code` application through the
-`files` menu. The second option retrieve the encoding framework in the data
-file.
 
 We first describe the `New_code` application that allows one to define the
 encoding framework of the study and then the encoder interface.
@@ -81,7 +84,8 @@ be accessed through the main menu of the `encoder` window[^nc] (see Fig.XXX).
 [^nc]: For the user able to launch individual python script, this application
     can also be used as a standalone tool.
 
-**Figure for the New Code interface**
+![Figure for the New Code interface](figures/newcode){#fig:newcode .class
+width=70%}
 
 The first informations entered in the interface are the name of the project,
 which will be used as the file name for saving the encoding definition and a
@@ -127,11 +131,7 @@ The format of the json file for the coding framework is as follows:
 }  
 ```
 
-It provides a versatile user interface which is dynamically built using
-a code definition file. 
-
-The code definition file can be either edited by
-hand using a **yaml** syntax or constructed using a user interface
+constructed using a user interface
 accessible from the CODIX main window.
 
 Code definition file specifies:
@@ -149,11 +149,68 @@ Example of .jod file. In this file, the coding is regular
 with a three-seconds period. The two participants are associated with
 different sets of codes and their alphabets.</figcaption>
 
-This file will be used to build a coding window adapted to the specific coding
+### Start a new session
+
+The first option suppose that you have already defined an encoding framework.
+If this is not the case, you can use the `New_code` application through the
+`files` menu. The second option retrieve the encoding framework in the data
+file.
+
+It provides a versatile user interface which is dynamically built using
+a code definition file so the coding window adapted to the specific coding
 of the study.
 
-Symbolic sequences are series of letters taken from an alphabet
 
+
+
+In case 1, you are supposed to start a new encoding session so the next
+step is to load either a video or a code file but loading a data file is
+disabled.
+
+
+When at least 2 of the 3 elements are presents (at least code and video and
+perhaps data) the interface appear with 4 frames: one for the file names, one
+controller for the video, one for the codes and one for playing the video.
+
+Before coding starts, one can explore the video using the buttons of the
+controller either continuously or using a time step which can be defined in the
+controller window (frame?). 
+
+The code frames is built according to the code file and thus provide an adapted
+interface for each project with different coding framework.
+
+When one starts coding, several options are frozen. During the encoding process,
+one can go back to check the encoding. The software also checks that all the
+codes are entered before processing.
+
+Data are stored in a json file according to the illustrated file in FigXX.
+
+```{.json}
+
+{"history": [["Sat Jan 14 12:03:01 2023", "CC", ""]], 
+"media": "/home/Student/Desktop/Study/videos/S2650002.MP4", 
+"code": "/home/Student/Desktop/Study/Codes/6persoSis.cod", 
+"times": [0, 10000, 20000, 30000, 40000, 50000],
+"comments": ["", "", "", "", ""],
+ "regular": true, "period": 10.0, "t_unit": "second", 
+"data": {"Mere": 
+{"Emotion": {"dico": {"0": "Neutre", "1": "Pos", "2": "Neg"}, 
+             "seq": [0, 2, 0, 2],
+```
+
+### Resume a session
+
+In case 2, since all the information are present in the data file (names of the
+code file and of the video file), all the files are loaded at once (if they
+exist).
+
+
+## `codix-analyzer`
+
+
+# Example: mother-infant interactions
+
+As an example we will use the mother-infant interaction study as an illustration @DobaEtAl22
 In the case of the mother-infant interaction study, for each 3 second section of
 video recording, the maternal and infant behaviors within a dyad were coded by
 the same rater but initial and reunion conditions were coded by independent
@@ -204,46 +261,4 @@ reflective verbalization, verbalization} for mothers' verbal behavior,
 motor behavior and {toward infant, away} for mothers' gaze behavior and
 a level of behavioral involvement for the infant i.e. {low, moderate,
 high} for infants' global behavioral involvement.
-
-### Encoder interface and process
-
-In case 1, you are supposed to start a new encoding session so the next
-step is to load either a video or a code file but loading a data file is
-disabled.
-
-In case 2, since all the information are present in the data file (names of the
-code file and of the video file), all the files are loaded at once (if they
-exist).
-
-When at least 2 of the 3 elements are presents (at least code and video and
-perhaps data) the interface appear with 4 frames: one for the file names, one
-controller for the video, one for the codes and one for playing the video.
-
-Before coding starts, one can explore the video using the buttons of the
-controller either continuously or using a time step which can be defined in the
-controller window (frame?). 
-
-The code frames is built according to the code file and thus provide an adapted
-interface for each project with different coding framework.
-
-When one starts coding, several options are frozen. During the encoding process,
-one can go back to check the encoding. The software also checks that all the
-codes are entered before processing.
-
-Data are stored in a json file according to the illustrated file in FigXX.
-
-```{.json}
-
-{"history": [["Sat Jan 14 12:03:01 2023", "CC", ""]], 
-"media": "/home/Student/Desktop/Study/videos/S2650002.MP4", 
-"code": "/home/Student/Desktop/Study/Codes/6persoSis.cod", 
-"times": [0, 10000, 20000, 30000, 40000, 50000],
-"comments": ["", "", "", "", ""],
- "regular": true, "period": 10.0, "t_unit": "second", 
-"data": {"Mere": 
-{"Emotion": {"dico": {"0": "Neutre", "1": "Pos", "2": "Neg"}, 
-             "seq": [0, 2, 0, 2],
-```
-
-
 

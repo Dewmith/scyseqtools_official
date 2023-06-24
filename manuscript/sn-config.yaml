@@ -4,7 +4,7 @@ input-files:
 from: markdown
 to: latex
 #output-file: manuscript.tex
-output-file: manuscript.pdf
+output-file: manuscript.tex
 standalone: true
 toc: true
 # number-sections: true
@@ -24,7 +24,8 @@ variables:
   documentclass: sn-jnl
   classoption: 
   - sn-apa
-#  papersize: a4
+#  - lineno
+  papersize: a4
 #  fontsize: 10pt
 #  biblio-style: apa
 #  biblatex-options: 
@@ -37,7 +38,7 @@ variables:
 ## metadata-file(s) also exists
 metadata:
   author: L. Pezard
-  title: "Codix suite: an encoding suite for encoding and analysing behavioral data"
+  title: "Codix suite: a software suite for encoding and analysing behavioral data"
   date: 2023-02-01
   abstract: |
     This is the abstract.

@@ -35,13 +35,10 @@
 $if(fontsize)$
   $fontsize$,
 $endif$
-$if(papersize)$
-  $papersize$paper,
-$endif$
 $for(classoption)$
   $classoption$$sep$,
 $endfor$
-]{$documentclass$}
+a4paper]{$documentclass$}
 
 %%%% Standard Packages
 %%<additional latex packages if required can be included here>
@@ -89,7 +86,7 @@ $endif$
 %  \setlength{\itemsep}{0pt}\setlength{\parskip}{0pt}}
 \begin{document}
 
-\title[Article Title]{Article Title}
+\title[$title$]{$title$}
 
 %%=============================================================%%
 %% Prefix	-> \pfx{Dr}
@@ -121,7 +118,8 @@ $endif$
 %% sample for unstructured abstract %%
 %%==================================%%
 
-\abstract{The abstract serves both as a general introduction to the topic and as a brief, non-technical summary of the main results and their implications. Authors are advised to check the author instructions for the journal they are submitting to for word limits and if structural elements like subheadings, citations, or equations are permitted.}
+\abstract{$abstract$}
+%The abstract serves both as a general introduction to the topic and as a brief, non-technical summary of the main results and their implications. Authors are advised to check the author instructions for the journal they are submitting to for word limits and if structural elements like subheadings, citations, or equations are permitted.}
 
 %%================================%%
 %% Sample for structured abstract %%

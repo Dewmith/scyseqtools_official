@@ -133,12 +133,17 @@ class Application(tkinter.Tk):
         """Loading files defining a coding framework.
         Now only supports the new .jod (json) files
         """
-        fname = tkinter.filedialog.askopenfilename(filetypes=[('New code', '*.jod')],
-                                                   initialdir=os.path.expanduser('~'))
-        if U.is_valid_filename(fname, ext='.jod'):
+        
+        fname = "/home/leo/Bureau/leo_dev/github/codix-suite/codix/codix-encoder/test2.jod"
+        if os.path.exists(fname):
             self.read_code(fname)
-        else:
-            tkinter.messagebox.showinfo('Cannot load', 'Cannot load %s file' % fname)
+        else :
+            fname = tkinter.filedialog.askopenfilename(filetypes=[('New code', '*.jod')],
+                                                   initialdir=os.path.expanduser('~'))
+            if U.is_valid_filename(fname, ext='.jod'):
+                self.read_code(fname)
+            else:
+                tkinter.messagebox.showinfo('Cannot load', 'Cannot load %s file' % fname)
 
     def read_code(self, fname):
 
@@ -171,15 +176,20 @@ class Application(tkinter.Tk):
         self.framework.grid(row=2, column=0, sticky=U.sticky_all)
 
     
+
     def ask_media(self):
         """Load media file
         """
-        fname = tkinter.filedialog.askopenfilename(
-                                   initialdir=os.path.expanduser('~'))
-        if U.is_valid_filename(fname):
+        fname = "/home/leo/Bureau/leo_dev/video/164360 (720p).mp4"
+        if os.path.exists(fname):
             self.read_media(fname)
-        else:
-            tkinter.messagebox.showinfo('Cannot load', 'Cannot load %s file' % fname)
+        else :
+            fname = tkinter.filedialog.askopenfilename(
+                                    initialdir=os.path.expanduser('~'))
+            if U.is_valid_filename(fname):
+                self.read_media(fname)
+            else:
+                tkinter.messagebox.showinfo('Cannot load', 'Cannot load %s file' % fname)
 
     def read_media(self, fname):
         # create a control frame

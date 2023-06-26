@@ -42,6 +42,7 @@ class PlayerControl(tkinter.LabelFrame):
 
         # FIXME: insert the test of the media which is done in `encoder`?
         
+
         # Control panel
         self.back_but = tkinter.Button(self, text='Back', command=self.backward) 
         self.back_but.grid(row=1, column=0, sticky=tkinter.W)
@@ -82,8 +83,11 @@ class PlayerControl(tkinter.LabelFrame):
         self.bind('<Button-3>', self.change_color)
 
         self._state = "initial"
+
+        #self.max_time = application.player.get_length()
         
     def step_play(self, dt):
+        self.play_but.update()
         # self.player.set_pause(do_pause=0)
         # print 'Start step play: ', self.player.get_time()
         print('Start step play: ', self._root().current_time)
@@ -106,19 +110,16 @@ class PlayerControl(tkinter.LabelFrame):
         self.state = "paused"
 
     def playpause(self):
-        print("##### play/pause"+ self.state)
+        self.play_but.update()
+        print("##### play/pause state = "+ self.state)
         mode = self._root().player_mode.get()
         if mode =='regular':
             period = self.get_period()
             if period is not None :
                 itime = self.player.get_time()
-#                self._state = "played"
-#                self.config_button(self._state, mode)
+
                 self.step_play(period)         
-                # self.after(int(period*1000))
-                # self._state = "notplayed"
-                # self.config_button(self._state, mode)
-                # print("HERE!")
+                
                 while self.state != 'paused':
                     # print("wait for pause...")
                     pass # wait for state == 'paused'
@@ -130,33 +131,20 @@ class PlayerControl(tkinter.LabelFrame):
             if self._root().current_step is not None:
                 self._root().current_step += 1
             print('End PP current step: ', self._root().current_step)
-            print(" ##### fin play regular"+ self._state)
+            print(" ##### end play regular state = "+ self._state)
 
         if mode =='continuous':
             if self.state == "c_playing": 
-                self.do_pause()
+                self.dopause()
                 self.set_time(self.player.get_time())
+                print(" ##### end play continuous state = "+ self._state)
 
-            elif self.state == "paused":
-                self.cont_play()
-     
-
-#            pstate = self.player.get_state()
-#            if self._state == "played" :
-#                self.player.set_pause(do_pause=1)
-#                self._state = "notplayed"
-#                self.config_button(self._state, mode)
-#                self.set_time(self.player.get_time())
-#
-#            elif self._state == "notplayed" or self._state == None :
-#                self.player.set_pause(do_pause=0)
-#                self.state = "played" 
-#                self.config_button(self._state, mode)
+            elif self.state == "paused" or self.state == "initial":
+                self.cont_play()           
             
-
             else:
                 raise ValueError(f'Unknown player state ' + self.state)
-            print(" ##### fin play continuous"+ self._state)
+            
      
     def backward(self):
         mode = self._root().player_mode.get()
@@ -308,12 +296,12 @@ class PlayerControl(tkinter.LabelFrame):
         mode = self._root().player_mode.get()
         if mode == 'continuous': # ie regular play...
             print('change mode: regular')
-            self._state = "notplayed"
-            self.config_button(self._state, mode)
+            self._state = "paused"
+            #self.config_button(self._state, mode)
 
         else:
             print('change mode: continuous')
-            self.config_button(self._state, mode)
+            #self.config_button(self._state, mode)
 
     @property
     def state(self):

@@ -306,14 +306,19 @@ class Application(tkinter.Tk):
         - code and media file names
         - encoding specifications 
         """
+
+        if not self.loaded_media :
+            tkinter.messagebox.showinfo('Please load a media' , 'Please load a media')
+            self.ask_media()
+
         observer = self.framework.spec_frame.person.get()
         if observer == '':
             #tkinter.messagebox.showinfo('Please identify', 
                                   #'Please identify yourself')
             name = tkinter.simpledialog.askstring('Please identify', 'Please identify yourself')
             observer = name
-            
-            
+            self.framework.spec_frame.person.set(name) 
+ 
         if observer != '' :
             print("cas 1 ")
             date = datetime.now().strftime('%c')
@@ -328,31 +333,25 @@ class Application(tkinter.Tk):
             self.max_step = len(self.container['times'])
             
         else: # starts a new session
-            print("cas 2, verification self.control existe ")
-            if not self.loaded_media :
-                print(" existe pas ")
-                self.ask_media()
-            else :
-                print("existe")
-                self.container['media'] = self.media_file.get()
+            self.container['media'] = self.media_file.get()
 
-                self.get_mode_and_period(self.container['code'])
-                self.framework.disable_specifications()
+            self.get_mode_and_period(self.container['code'])
+            self.framework.disable_specifications()
 
-                mode = self.player_mode.get()
-                if mode == 'regular': # regular sampling
-                    period = self.control.get_period()
-                    if period is not None:
-                        self.freeze()
-                    print('period: ', period)
-                    assert(len(self.container['times']) == 0)
-                    self.container['times'].append(self.current_time)
-                    self.max_step = len(self.container['times']) - 1
-                    self.current_step = 0
-                    self.data_loaded = True
-                    # self.framework.disable_codes()
-                    print(self.container)
-                    self.info.data_save.configure(state=tkinter.NORMAL)
+            mode = self.player_mode.get()
+            if mode == 'regular': # regular sampling
+                period = self.control.get_period()
+                if period is not None:
+                    self.freeze()
+                print('period: ', period)
+                assert(len(self.container['times']) == 0)
+                self.container['times'].append(self.current_time)
+                self.max_step = len(self.container['times']) - 1
+                self.current_step = 0
+                self.data_loaded = True
+                # self.framework.disable_codes()
+                print(self.container)
+                self.info.data_save.configure(state=tkinter.NORMAL)
     #                    if self.current_step == 0 or \
     #                       self.control.player.get_state() == 3: # playing
     #                    while self.control.player.get_state() != 5: # 5: Stopped
@@ -363,8 +362,8 @@ class Application(tkinter.Tk):
     #                        print("current step: ", self.current_step)
     #                        self.framework.enable_codes()
     #                        #    print(self.container)
-                else:
-                    raise NotImplementedError('Continuous coding is not implemented')
+            else:
+                raise NotImplementedError('Continuous coding is not implemented')
 #
 #                # self.current_step = 0
 #

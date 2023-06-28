@@ -44,7 +44,7 @@ class Application(tkinter.Tk):
         self['menu'] = self.menu # why is this mandatory?
         self.init_variables()
 
-        self.loaded_media = False
+        
 
     def init_variables(self):
 
@@ -90,8 +90,8 @@ class Application(tkinter.Tk):
 
     def start_session(self):
         self.info = InfoFrame(parent=self, 
-                              states=(tkinter.NORMAL,    # load code
-                                      tkinter.DISABLED,  # load media
+                              states=(tkinter.NORMAL,    # load media
+                                      tkinter.DISABLED,  # load code
                                       tkinter.DISABLED)) # load data
         self.info.grid(row=1, column=1, sticky=U.sticky_all)
         self.menu.disable_actions()
@@ -194,6 +194,9 @@ class Application(tkinter.Tk):
                 self.read_media(fname)
             else:
                 tkinter.messagebox.showinfo('Cannot load', 'Cannot load %s file' % fname)
+        self.info.code_load.config(state='normal')
+        ## Pour pas lancer vlc sans periode ? // default_period sinon ?
+        # self.control.mode_check.config(state='disabled')
 
     def read_media(self, fname):
         # create a control frame
@@ -306,11 +309,6 @@ class Application(tkinter.Tk):
         - code and media file names
         - encoding specifications 
         """
-
-        if not self.loaded_media :
-            tkinter.messagebox.showinfo('Please load a media' , 'Please load a media')
-            self.ask_media()
-
         observer = self.framework.spec_frame.person.get()
         if observer == '':
             #tkinter.messagebox.showinfo('Please identify', 

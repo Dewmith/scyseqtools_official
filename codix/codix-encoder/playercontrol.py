@@ -94,7 +94,8 @@ class PlayerControl(tkinter.LabelFrame):
                                   'Cannot get max time; this may cause problems')
         print('Length of media file: ', self.max_time, ' ms.')
         self._state = "paused"
-
+        self.default_period = 5
+        
         
     def step_play(self, dt):
         self.play_but.update()
@@ -260,9 +261,10 @@ class PlayerControl(tkinter.LabelFrame):
         try:
             return float(dt)
         except ValueError:
-            tkinter.messagebox.showinfo('Value Error', 
-                              'Period cannot be converted to float')
-            return None
+            #tkinter.messagebox.showinfo('Value Error', 
+                              #'Period cannot be converted to float')
+            #return None
+            return float(self.default_period)
 
     #    def kb_set_period(self, tkevent):
     #        """

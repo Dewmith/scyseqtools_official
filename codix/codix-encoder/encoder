@@ -13,6 +13,7 @@ import time
 import tkinter
 import tkinter.filedialog
 import tkinter.messagebox
+import tkinter.simpledialog
 
 # tk colors : https://www.tcl.tk/man/tcl/TkCmd/colors.html
 
@@ -42,6 +43,8 @@ class Application(tkinter.Tk):
         self.menu = ApplicationMenu(master=self)
         self['menu'] = self.menu # why is this mandatory?
         self.init_variables()
+
+        
 
     def init_variables(self):
 
@@ -87,8 +90,8 @@ class Application(tkinter.Tk):
 
     def start_session(self):
         self.info = InfoFrame(parent=self, 
-                              states=(tkinter.NORMAL,    # load code
-                                      tkinter.DISABLED,  # load media
+                              states=(tkinter.NORMAL,    # load media
+                                      tkinter.DISABLED,  # load code
                                       tkinter.DISABLED)) # load data
         self.info.grid(row=1, column=1, sticky=U.sticky_all)
         self.menu.disable_actions()
@@ -133,12 +136,16 @@ class Application(tkinter.Tk):
         """Loading files defining a coding framework.
         Now only supports the new .jod (json) files
         """
-        fname = tkinter.filedialog.askopenfilename(filetypes=[('New code', '*.jod')],
-                                                   initialdir=os.path.expanduser('~'))
-        if U.is_valid_filename(fname, ext='.jod'):
+        fname = "test2.jod"
+        if os.path.exists(fname):
             self.read_code(fname)
-        else:
-            tkinter.messagebox.showinfo('Cannot load', 'Cannot load %s file' % fname)
+        else :
+            fname = tkinter.filedialog.askopenfilename(filetypes=[('New code', '*.jod')],
+                                                   initialdir=os.path.expanduser('~'))
+            if U.is_valid_filename(fname, ext='.jod'):
+                self.read_code(fname)
+            else:
+                tkinter.messagebox.showinfo('Cannot load', 'Cannot load %s file' % fname)
 
     def read_code(self, fname):
 
@@ -171,15 +178,25 @@ class Application(tkinter.Tk):
         self.framework.grid(row=2, column=0, sticky=U.sticky_all)
 
     
+
     def ask_media(self):
         """Load media file
         """
-        fname = tkinter.filedialog.askopenfilename(
-                                   initialdir=os.path.expanduser('~'))
-        if U.is_valid_filename(fname):
+        fname = "/home/leo/Bureau/leo_dev/video/164360 (720p).mp4"
+        if os.path.exists(fname):
+            self.loaded_media = True 
             self.read_media(fname)
-        else:
-            tkinter.messagebox.showinfo('Cannot load', 'Cannot load %s file' % fname)
+        else :
+            fname = tkinter.filedialog.askopenfilename(
+                                    initialdir=os.path.expanduser('~'))
+            if U.is_valid_filename(fname):
+                self.loaded_media = True 
+                self.read_media(fname)
+            else:
+                tkinter.messagebox.showinfo('Cannot load', 'Cannot load %s file' % fname)
+        self.info.code_load.config(state='normal')
+        ## Pour pas lancer vlc sans periode ? // default_period sinon ?
+        # self.control.mode_check.config(state='disabled')
 
     def read_media(self, fname):
         # create a control frame
@@ -191,25 +208,10 @@ class Application(tkinter.Tk):
             self.period_display.set('-')
         # END FIXME
 
-        self.control = PlayerControl(application=self)
+        self.control = PlayerControl(application=self, file_name = fname)
         self.control.grid(row=1, column=0, sticky=U.sticky_all)
         
-        # FIXME: this should be done in playercontrol
-        self.control.player.set_mrl(fname)
         self.media_file.set(fname)
-
-        # This is a hack for time initialization.
-        # reads 1s and then goes back to 0 
-        self.control.player.play()
-        time.sleep(1) # 0.1 is too short I loose sound!?
-        self.max_time = self.control.player.get_length() # a long in ms
-        self.control.player.set_pause(do_pause=1)
-        self.control.set_time(0, 'Initial time')
-        if self.max_time == -1:
-            tkinter.messagebox.showinfo('Cannot get max time', 
-                                  'Cannot get max time; this may cause problems')
-        print('Length of media file: ', self.max_time, ' ms.')
-        # END FIXME
 
         self.media_loaded = True
         self.configure_interface()
@@ -309,9 +311,14 @@ class Application(tkinter.Tk):
         """
         observer = self.framework.spec_frame.person.get()
         if observer == '':
-            tkinter.messagebox.showinfo('Please identify', 
-                                  'Please identify yourself')
-        else:
+            #tkinter.messagebox.showinfo('Please identify', 
+                                  #'Please identify yourself')
+            name = tkinter.simpledialog.askstring('Please identify', 'Please identify yourself')
+            observer = name
+            self.framework.spec_frame.person.set(name) 
+ 
+        if observer != '' :
+            print("cas 1 ")
             date = datetime.now().strftime('%c')
             self.framework.spec_frame.timestamp.set(date)
             comment = self.framework.spec_frame.comment.get()
@@ -343,16 +350,16 @@ class Application(tkinter.Tk):
                 # self.framework.disable_codes()
                 print(self.container)
                 self.info.data_save.configure(state=tkinter.NORMAL)
-#                    if self.current_step == 0 or \
-#                       self.control.player.get_state() == 3: # playing
-#                    while self.control.player.get_state() != 5: # 5: Stopped
-#                        print(self.control.player.get_state())
-#                        # time.sleep(5)
-#                    if self.control.player.get_state() == 4: # 4: Paused
-#                        self.current_step += 1
-#                        print("current step: ", self.current_step)
-#                        self.framework.enable_codes()
-#                        #    print(self.container)
+    #                    if self.current_step == 0 or \
+    #                       self.control.player.get_state() == 3: # playing
+    #                    while self.control.player.get_state() != 5: # 5: Stopped
+    #                        print(self.control.player.get_state())
+    #                        # time.sleep(5)
+    #                    if self.control.player.get_state() == 4: # 4: Paused
+    #                        self.current_step += 1
+    #                        print("current step: ", self.current_step)
+    #                        self.framework.enable_codes()
+    #                        #    print(self.container)
             else:
                 raise NotImplementedError('Continuous coding is not implemented')
 #

@@ -20,33 +20,34 @@ class InfoFrame(tkinter.LabelFrame):
                        text='Information: ', font=(tkinter.font.BOLD,))
         self.grid(column=1,
                   row=0)
-        # Code File
-        self.code_label = tkinter.Label(self, text='Code file: ', 
-                                         background=info_bg)
-        self.code_label.grid(row=1, column=0, sticky=tkinter.W)
-        code_msg = tkinter.Entry(self, textvariable=parent.code_file,
-                                       state=tkinter.DISABLED, 
-                                       width=filename_width, 
-                                       disabledbackground=disabled_bg)
-        code_msg.grid(row=1, column=1, sticky=tkinter.W)
-        self.code_load = tkinter.Button(self, text='Load',
-                                        state=states[0],
-                                        command=parent.ask_code)
-        self.code_load.grid(row=1, column=2, sticky=tkinter.W)
-
+        
         # Media File
         self.media_label = tkinter.Label(self, text='Media file: ', 
                                           background=info_bg)
-        self.media_label.grid(row=2, column=0, sticky=tkinter.W)
+        self.media_label.grid(row=1, column=0, sticky=tkinter.W)
         media_msg = tkinter.Entry(self, textvariable=parent.media_file, 
                                         state=tkinter.DISABLED,
                                         width=filename_width, 
                                         disabledbackground=disabled_bg)
-        media_msg.grid(row=2, column=1, sticky=tkinter.W)
+        media_msg.grid(row=1, column=1, sticky=tkinter.W)
         self.media_load = tkinter.Button(self, text='Load',
-                                         state=states[1],
+                                         state=states[0],
                                          command=parent.ask_media)
-        self.media_load.grid(row=2, column=2, sticky=tkinter.W)
+        self.media_load.grid(row=1, column=2, sticky=tkinter.W)
+
+        # Code File
+        self.code_label = tkinter.Label(self, text='Code file: ', 
+                                         background=info_bg)
+        self.code_label.grid(row=2, column=0, sticky=tkinter.W)
+        code_msg = tkinter.Entry(self, textvariable=parent.code_file,
+                                       state=tkinter.DISABLED, 
+                                       width=filename_width, 
+                                       disabledbackground=disabled_bg)
+        code_msg.grid(row=2, column=1, sticky=tkinter.W)
+        self.code_load = tkinter.Button(self, text='Load',
+                                        state=states[1],
+                                        command=parent.ask_code)
+        self.code_load.grid(row=2, column=2, sticky=tkinter.W)
 
         # Data File
         self.data_label = tkinter.Label(self, text='Data file: ', 

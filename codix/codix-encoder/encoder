@@ -74,7 +74,7 @@ class Application(tkinter.Tk):
                           'times': [], # sample times (in ms) vlc works with milliseconds
                           'comments': [], # sample comments
                           'data': {}} # data
-
+        
         # self.scenario = None
 
 # Menu related functions
@@ -361,6 +361,9 @@ class Application(tkinter.Tk):
     #                        #    print(self.container)
             else:
                 raise NotImplementedError('Continuous coding is not implemented')
+            
+            self.config_processing_buttons('normal')
+
 #
 #                # self.current_step = 0
 #
@@ -554,7 +557,6 @@ class Application(tkinter.Tk):
 
         if period is None:
             self.player_mode.set("continuous")
-            #self.period_display.set('-')
             tkinter.messagebox.showinfo('Continuous not implemented', 
                                    'Irregular sampling not implemented')
             raise NotImplementedError()
@@ -564,6 +566,15 @@ class Application(tkinter.Tk):
 
     def notimplemented(self):
         tkinter.messagebox.showinfo('Not implemented', 'Not implemented')
+
+    def config_processing_buttons(self,st):
+            for panel in self.framework.coding_frame.panels:
+                for k, v in panel.coding.items():
+                    for button in v['buttons']:
+                        button.configure(state=st)
+
+
+
 
 
 if __name__ == "__main__":

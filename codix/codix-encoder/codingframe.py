@@ -43,6 +43,7 @@ class FrameworkFrame(tkinter.LabelFrame):
         for panel in self.coding_frame.panels:
             for k, v in panel.coding.items():
                 for button in v['buttons']:
+                    #### leocomment
                     button.configure(state=tkinter.DISABLED)
 
     def enable_codes(self):
@@ -119,6 +120,7 @@ class Panel(tkinter.LabelFrame):
 
         local_col = 0
         self.coding = {}
+        
         for code_name in code_names:
             self.coding[code_name] = {}
             self.coding[code_name]['var'] = tkinter.StringVar()
@@ -130,9 +132,9 @@ class Panel(tkinter.LabelFrame):
             self.coding[code_name]['buttons'] = [tkinter.Button(self, text=symbol, 
                    command=lambda s=self, n=code_name, kk=symbol: s.set_msg(kk,n))
                                                  for symbol in symbols]
-            
             for nb_symbols, sbut in enumerate(self.coding[code_name]['buttons']):
                 sbut.grid(row=nb_symbols+1, column=local_col, sticky=U.sticky_all)
+                
             
             msg = tkinter.Entry(self, state=tkinter.DISABLED,
                                       width=10, 
@@ -141,6 +143,9 @@ class Panel(tkinter.LabelFrame):
                                       textvariable=self.coding[code_name]['var'])
             msg.grid(row=max_symbols+1, column=local_col, sticky=U.sticky_all)
             local_col += 1
+        
+        
+
 
     def set_msg(self, symbol, code_name):
         """Show the selected code in the message box

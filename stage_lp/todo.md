@@ -14,3 +14,9 @@ pas si simple que ça...
 par exemple, c'est bien un état du player et pas de l'application. Comme pour le
 temps. Ça devrait être le player qui envoie les info à l'appli et pas le
 contraire...
+
+Il semble que la technique dans:
+
+https://stackoverflow.com/questions/10718073/how-to-create-child-window-and-communicate-with-parent-in-tkinter
+
+mérite d'être implémentée.

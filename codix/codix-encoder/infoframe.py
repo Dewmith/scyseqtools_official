@@ -1,4 +1,9 @@
+import os
 import tkinter
+
+import utils as U
+
+from pathlib import Path
 import tkinter.font
 from tkinter.colorchooser import askcolor
 
@@ -13,6 +18,8 @@ class InfoFrame(tkinter.LabelFrame):
 
     def __init__(self, parent, states=[None, None, None]):
         tkinter.LabelFrame.__init__(self, parent)
+        self. application = parent
+
         self.configure(background=info_bg, 
                        borderwidth=bd,
                        padx=20, pady=20, 
@@ -23,16 +30,16 @@ class InfoFrame(tkinter.LabelFrame):
         
         # Media File
         self.media_label = tkinter.Label(self, text='Media file: ', 
-                                          background=info_bg)
+                                         background=info_bg)
         self.media_label.grid(row=1, column=0, sticky=tkinter.W)
         media_msg = tkinter.Entry(self, textvariable=parent.media_file, 
                                         state=tkinter.DISABLED,
                                         width=filename_width, 
                                         disabledbackground=disabled_bg)
         media_msg.grid(row=1, column=1, sticky=tkinter.W)
-        self.media_load = tkinter.Button(self, text='Load',
-                                         state=states[0],
-                                         command=parent.ask_media)
+        self.media_load = tkinter.Button(self, text='Load', state=states[0],
+                                         #command=parent.ask_media)
+                                         command=self.ask_media)
         self.media_load.grid(row=1, column=2, sticky=tkinter.W)
 
         # Code File
@@ -68,6 +75,28 @@ class InfoFrame(tkinter.LabelFrame):
         self.data_save.grid(row=3, column=3, sticky=tkinter.W)
 
         self.bind('<Button-3>', self.change_color)
+
+    def ask_media(self):
+        """Load media file
+        """
+        fname = "/home/leo/Bureau/leo_dev/video/164360 (720p).mp4"
+        if os.path.exists(fname):
+            self.loaded_media = True 
+            self.application.read_media(fname)
+        else :
+            fname = tkinter.filedialog.askopenfilename(
+                                    initialdir=os.path.expanduser('~'))
+            if U.is_valid_filename(fname):
+                self.loaded_media = True 
+                self.application.read_media(fname)
+            else:
+                tkinter.messagebox.showinfo('Cannot load', 'Cannot load %s file' % fname)
+        self.info.code_load.config(state='normal')
+        ## Pour pas lancer vlc sans periode ? // default_period sinon ?
+        #self.control.mode_check.config(state='disabled')
+        # FIXME: make this more systematic...
+        #self.period_display.set(self.control.default_period)
+
 
     def change_color(self, event):
         colortuple = askcolor()

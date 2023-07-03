@@ -222,7 +222,10 @@ class SpecificationFrame(tkinter.LabelFrame):
                                          command=application.start_processing)
         self.start_but.grid(row=0, column=5, rowspan=4, sticky=U.sticky_all)
 
+    
 # FIXME: is it useful to pause / stop recording?
 #        stop_but = Tkinter.Button(self, text='Stop\nrecording',
 #                                                  command=application.stop_record)
 #        stop_but.grid(row=0, column=6, rowspan=1, sticky=U.sticky_all)
+
+

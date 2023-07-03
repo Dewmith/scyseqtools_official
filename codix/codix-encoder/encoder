@@ -505,6 +505,7 @@ class Application(tkinter.Tk):
                 for k, v in panel.coding.items():
                     for button in v['buttons']:
                         button.configure(state=st)
+            
 
 
 

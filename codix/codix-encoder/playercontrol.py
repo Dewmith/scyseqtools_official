@@ -103,6 +103,7 @@ class PlayerControl(tkinter.LabelFrame):
         tt = Timer(dt, self.dopause)
         self.player.play()
         tt.start()
+
     
     def cont_play(self):
         print('Start play: ', self._root().current_time)

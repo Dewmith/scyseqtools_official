@@ -33,14 +33,7 @@ class PlayerControl(tkinter.LabelFrame):
         tkinter.LabelFrame.__init__(self, application)
         self.configure(background=ctrl_bg, borderwidth=bd, padx=20, pady=20,
                        relief=relief, text='Control: ', font=('bold',))
-        self.grid(column=1,
-                  row=0)
-        # player instance 
-        args = ['--no-xlib']
-        instance = vlc.Instance(args)
-        self.player = instance.media_player_new()
-
-        # FIXME: insert the test of the media which is done in `encoder`?
+        self.grid(column=1, row=0)
         
         # Control panel
         self.back_but = tkinter.Button(self, text='Back', command=self.backward) 
@@ -81,10 +74,16 @@ class PlayerControl(tkinter.LabelFrame):
         
         self.bind('<Button-3>', self.change_color)
 
+        # FIXME: insert the test of the media which is done in `encoder`?
+        # player instance 
+        args = ['--no-xlib']
+        instance = vlc.Instance(args)
+        self.player = instance.media_player_new()
+
         self.player.set_mrl(file_name)
         # This is a hack for time initialization.
         # reads 1s and then goes back to 0 
-        self.player.play()
+        print(self.player.play())
         time.sleep(1) # 0.1 is too short I loose sound!?
         self.max_time = self.player.get_length() # a long in ms
         self.player.set_pause(do_pause=1)

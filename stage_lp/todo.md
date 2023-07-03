@@ -1,5 +1,5 @@
 - redimensionnement des fenêtres (low)
-- Fichier de config (low)
+- Fichier de config (low) see [ConfigParser](https://docs.python.org/3/library/configparser.html)
 
 - Dans certains modules il y a la variable `application` or on peut utiliser à
   la place `_root()`. Voir ce qui est le plus cohérent et ne pas utiliser les
@@ -14,3 +14,9 @@ pas si simple que ça...
 par exemple, c'est bien un état du player et pas de l'application. Comme pour le
 temps. Ça devrait être le player qui envoie les info à l'appli et pas le
 contraire...
+
+Il semble que la technique dans:
+
+https://stackoverflow.com/questions/10718073/how-to-create-child-window-and-communicate-with-parent-in-tkinter
+
+mérite d'être implémentée.

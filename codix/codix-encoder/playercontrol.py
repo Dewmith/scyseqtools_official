@@ -35,6 +35,9 @@ class PlayerControl(tkinter.LabelFrame):
                        relief=relief, text='Control: ', font=('bold',))
         self.grid(column=1, row=0)
         
+        self._mode = tkinter.StringVar(value='continuous')
+        self._period = tkinter.StringVar(value='5')
+
         # Control panel
         self.back_but = tkinter.Button(self, text='Back', command=self.backward) 
         self.back_but.grid(row=1, column=0, sticky=tkinter.W)
@@ -46,14 +49,15 @@ class PlayerControl(tkinter.LabelFrame):
         self.forward_but.grid(row=1, column=2)
        
         self.mode_check = tkinter.Checkbutton(self, text='By period of ',
-                                              variable=application.player_mode, 
+                                              variable=self._mode, 
                                               onvalue='regular', offvalue='continuous',
                                               background=ctrl_bg)
         self.mode_check.grid(column=0, row=2, sticky=tkinter.W)
-        self.mode_check.bind('<Button>', self.change_mode)
+        # self.mode_check.bind('<Button>', self.change_mode)
 
         self.period_ent = tkinter.Entry(self, width=4,
-                                      textvariable=application.period_display)
+                                      # textvariable=application.period_display)
+                                      textvariable=self._period)
         self.period_ent.grid(column=1, row=2, sticky=tkinter.W)
         # FIXME: 
         # self.period_ent.bind('<Return>', self.kb_set_period)
@@ -115,25 +119,28 @@ class PlayerControl(tkinter.LabelFrame):
         self.state = "paused"
 
     def playpause(self):
-        mode = self._root().player_mode.get()
-        if mode =='regular':
-            period = self.get_period()
-            if period is not None :
+
+# FIXME: le player_mode est une prorpiété du player pas de l'application
+        # mode = self._root().player_mode.get()
+        
+        if self.mode == 'regular':
+            # period = self.get_period()
+            if self.period is not None :
                 itime = self.player.get_time()
 
-                self.step_play(period)         
+                self.step_play(self.period)         
                 
                 while self.state != 'paused':
                     pass # wait for state == 'paused'
             print('End time: ', self.player.get_time())
-            ftime = itime + int(period*1000)
+            ftime = itime + int(self.period*1000)
             self.set_time(ftime, 'Synchronized time')
             # FIXME: check how we deal with `step`...
             if self._root().current_step is not None:
                 self._root().current_step += 1
             print('End PP current step: ', self._root().current_step)
 
-        if mode =='continuous':
+        if self.mode =='continuous':
             if self.state == "c_playing": 
                 self.dopause()
                 self.set_time(self.player.get_time())
@@ -146,25 +153,27 @@ class PlayerControl(tkinter.LabelFrame):
             
      
     def backward(self):
-        mode = self._root().player_mode.get()
+        # mode = self._root().player_mode.get()
         itime = self.player.get_time()
-        print('Start backward current step: ', self._root().current_step)
-        if mode == "continuous":
+        # print('Start backward current step: ', self._root().current_step)
+        print('Start backward current step: ', self.period)
+        if self.mode == "continuous":
             self.set_time(itime - DTIME)
 
-        elif mode == 'regular':
-            period = self.get_period()
-            if period is not None:
+        elif self.mode == 'regular':
+        #     period = self.get_period()
+            if self.period is not None:
                 if not self._root().data_loaded:
-                    self.set_time(itime - int(period*1000))
+                    self.set_time(itime - int(self.period*1000))
                 else:
                     cstep = self._root().current_step
                     # if cstep is not None and cstep > 1:
                     assert(cstep is not None)
                     if cstep >= 1:
-                        self.set_time(itime - int(period*1000))
+                        self.set_time(itime - int(self.period*1000))
                         self._root().current_step -= 1
-                        print('End backward current step: ', self._root().current_step)
+                        # print('End backward current step: ', self._root().current_step)
+                        print('End backward current step: ', self.period)
                     else:
                         tkinter.messagebox.showinfo('Value Error', 
                               'Beginning of recording reached.')
@@ -183,24 +192,24 @@ class PlayerControl(tkinter.LabelFrame):
     #                self.free_step(-1, 'Free back')
 
     def forward(self):
-        mode = self._root().player_mode.get()
+        # mode = self._root().player_mode.get()
         itime = self.player.get_time()
         print('Start forward current step: ', self._root().current_step)
-        if mode == "continuous":
+        if self.mode == "continuous":
             self.set_time(itime + DTIME)
 
-        elif mode == 'regular':
-            period = self.get_period()
-            if period is not None:
+        elif self.mode == 'regular':
+            # period = self.get_period()
+            if self.period is not None:
                 if not self._root().data_loaded:
-                    self.set_time(itime + int(period*1000))
+                    self.set_time(itime + int(self.period*1000))
                 else:
                     cstep = self._root().current_step
                     mstep = self._root().max_step
                     # if cstep is not None and cstep > 1:
                     assert(cstep is not None)
                     if cstep <= mstep:
-                        self.set_time(itime + int(period*1000))
+                        self.set_time(itime + int(self.period*1000))
                         self._root().current_step += 1
                         print('End forward current step: ', self._root().current_step)
                     else:
@@ -254,17 +263,6 @@ class PlayerControl(tkinter.LabelFrame):
             print('Player time: set at %s (for %s) %s' % \
                   (self.player.get_time(), str(time), msg))
 
-    def get_period(self):
-        """Returns period in seconds
-        """
-        dt = self._root().period_display.get()
-        try:
-            return float(dt)
-        except ValueError:
-            #tkinter.messagebox.showinfo('Value Error', 
-                              #'Period cannot be converted to float')
-            #return None
-            return float(self.default_period)
 
     #    def kb_set_period(self, tkevent):
     #        """
@@ -288,15 +286,15 @@ class PlayerControl(tkinter.LabelFrame):
     #        self._root().current_time.set(time_sec)
     #        print 'player time: ', time, msg
 
-    def change_mode(self, tk_event):
-        """ Handler for mouse click on the modeButton of control panel
-        """
-        mode = self._root().player_mode.get()
-        if mode == 'continuous': # ie regular play...
-            print('change mode: regular')
-            
-        else:
-            print('change mode: continuous')
+#    def change_mode(self, tk_event):
+#        """ Handler for mouse click on the modeButton of control panel
+#        """
+#        mode = self._root().player_mode.get()
+#        if mode == 'continuous': # ie regular play...
+#            print('change mode: regular')
+#            
+#        else:
+#            print('change mode: continuous')
             
 
     @property
@@ -323,7 +321,7 @@ class PlayerControl(tkinter.LabelFrame):
                                  self.mode_check : 'disabled',
                                  self.period_ent : 'disabled'})
 
-        elif value == "paused" :
+        elif value == "paused" : # and contexte != "is_processing" 
             self._state = "paused"
             print('State: paused')
             self.config_buttons({self.play_but : 'normal', 
@@ -331,6 +329,50 @@ class PlayerControl(tkinter.LabelFrame):
                                  self.forward_but : 'normal', 
                                  self.mode_check : 'normal',
                                  self.period_ent : 'normal'})
+
+# lpcomment: when processing cannot change mode and period...
+#        elif value == "paused" and context =="is_processing" :
+#            self._state = "paused"
+#            print('State: paused')
+#            self.config_buttons({self.play_but : 'normal', 
+#                                 self.back_but : 'normal',
+#                                 self.forward_but : 'normal', 
+#                                 self.mode_check : 'disabled',
+#                                 self.period_ent : 'disabled'})
+    @property
+    def mode(self):
+        return self._mode.get()
+
+    @mode.setter
+    def mode(self, value):
+        if value == "regular":
+            self._mode.set(value)
+            print('Mode: regular')
+        elif value == "continuous":
+            self._mode.set(value)
+            print('Mode: continuous')
+        else:
+            raise ValueError
+
+    @property
+    def period(self):
+        return float(self._period.get())
+
+#    def get_period(self):
+#        """Returns period in seconds
+#        """
+#        dt = self._root().period_display.get()
+#        try:
+#            return float(dt)
+#        except ValueError:
+#            #tkinter.messagebox.showinfo('Value Error', 
+#                              #'Period cannot be converted to float')
+#            #return None
+#            return float(self.default_period)
+
+    @period.setter
+    def period(self, value):
+        self._period.set(value)
 
 
     def config_buttons(self, dico):

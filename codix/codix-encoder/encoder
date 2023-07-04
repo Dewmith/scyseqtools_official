@@ -61,8 +61,10 @@ class Application(tkinter.Tk):
         self.data_file = tkinter.StringVar()
 
         # variables related to player
-        self.player_mode = tkinter.StringVar(value='')
-        self.period_display = tkinter.StringVar(value='')
+#FIXME: keep player_mode and period_display temporarily for encodingframe
+# They are not needed for player_control which have its own properties
+#        self.player_mode = tkinter.StringVar(value='')
+#        self.period_display = tkinter.StringVar(value='')
         self.current_time = None # in ms
         self.current_step = None
         self.max_step = None
@@ -138,11 +140,14 @@ class Application(tkinter.Tk):
 # Information frame related functions
 #------------------------------------
 
-    
-
     def parse_code(self, encoding):
 
-        self.get_mode_and_period(encoding)
+#        self.get_mode_and_period(encoding)
+        period = encoding['period']
+        if period is None:
+            mode = "continuous"
+        else:
+            mode = "regular"
 
         sites = encoding['sites']
         codes = encoding['codes']
@@ -155,8 +160,11 @@ class Application(tkinter.Tk):
                 code_site.update({lcode: codes[lcode]})
             self.container['data'].update({site: data_site})
             codeframe[site] = code_site
+       
+        outcode = {'code': codeframe, 'player': ({'mode': mode, 'period': period})}
 
-        self.framework = FrameworkFrame(parent=self, encoding=codeframe)
+        # self.framework = FrameworkFrame(parent=self, encoding=codeframe)
+        self.framework = FrameworkFrame(parent=self, incode=outcode)
         self.framework.grid(row=2, column=0, sticky=U.sticky_all)
 
     def read_media(self, fname):
@@ -173,6 +181,7 @@ class Application(tkinter.Tk):
         self.control.grid(row=1, column=0, sticky=U.sticky_all)
         
         self.media_file.set(fname)
+        return True
         #### leocomment self.media_loaded forcément à True car ask_media verifie 
 
         """ self.media_loaded = True
@@ -239,14 +248,22 @@ class Application(tkinter.Tk):
         else: # starts a new session
 # lpcomment: les boutons doivent être désactivés au début. Ils ne sont activés
 # qu'à la pause après la première période de "play".
+# Le coding frame doit imposer ses valeurs au player au moment du "start
+# processing"
             self.container['media'] = self.media_file.get()
 
-            self.get_mode_and_period(self.container['code'])
+            #self.get_mode_and_period(self.container['code'])
+            self.control.mode = self.framework.player_mode.get()
+            self.control.period = self.framework.period_display.get()
             self.framework.config_specifications('disabled')
 
-            mode = self.player_mode.get()
+# FIXME: mode appartient au player mais pas à l'application
+#            mode = self.player_mode.get()
+# FIXME: change control for player?
+            mode = self.control.mode
             if mode == 'regular': # regular sampling
-                period = self.control.get_period()
+                #period = self.control.get_period()
+                period = self.control.period
                 if period is not None:
                     self.freeze()
                 print('period: ', period)
@@ -371,7 +388,8 @@ class Application(tkinter.Tk):
         times = self.container['times']
         comments = self.container['comments']
 
-        mode = self.player_mode.get()
+        #mode = self.player_mode.get()
+        mode = self.control.mode
         if mode == 'regular': # regular sampling
             if self.current_step < 0: # Should not happen...
                 tkinter.messagebox.showinfo('Before beginning', 'Before beginning')
@@ -461,17 +479,20 @@ class Application(tkinter.Tk):
         self.control.period_ent.configure(state=tkinter.DISABLED)
         self.control.time_ent.configure(state=tkinter.DISABLED)
 
-    def get_mode_and_period(self, encoding):
-        period = encoding['period']
-
-        if period is None:
-            self.player_mode.set("continuous")
-            tkinter.messagebox.showinfo('Continuous not implemented', 
-                                   'Irregular sampling not implemented')
-            raise NotImplementedError()
-        else:
-            self.player_mode.set("regular")
-            self.period_display.set(str(period))
+#    def get_mode_and_period(self, encoding):
+#        period = encoding['period']
+#
+#        if period is None:
+#            # self.player_mode.set("continuous")
+## FIXME: est que player ne serait pa mieux que control?
+#            self.control.mode = "continuous"
+#            tkinter.messagebox.showinfo('Continuous not implemented', 
+#                                   'Irregular sampling not implemented')
+#            raise NotImplementedError()
+#        else:
+#            #self.player_mode.set("regular")
+#            self.control.mode = "regular"
+#            # self.period_display.set(str(period))
 
     def notimplemented(self):
         tkinter.messagebox.showinfo('Not implemented', 'Not implemented')

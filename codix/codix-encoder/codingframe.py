@@ -15,7 +15,7 @@ panel_max = 5
 
 class FrameworkFrame(tkinter.LabelFrame):
 
-    def __init__(self, parent, encoding):
+    def __init__(self, parent, incode):
         tkinter.LabelFrame.__init__(self, parent)
         self.configure(background=coding_bg, 
                        borderwidth=bd, 
@@ -25,6 +25,13 @@ class FrameworkFrame(tkinter.LabelFrame):
         self.grid(columnspan=2,
                   row=1)
         self.application = parent
+
+        encoding = incode['code']
+        player = incode['player']
+        
+        # variables related to player
+        self.player_mode = tkinter.StringVar(value=player['mode'])
+        self.period_display = tkinter.StringVar(value=str(player['period']))
 
         self.spec_frame = SpecificationFrame(self)  
         self.spec_frame.grid(sticky=U.sticky_all)
@@ -54,10 +61,10 @@ class FrameworkFrame(tkinter.LabelFrame):
 #        except IndexError:
 #            pass
 ####
-        for panel in self.coding_frame.panels:
-            for k, v in panel.coding.items():
-                for button in v['buttons']:
-                    button.configure(state=tkinter.NORMAL)
+#        for panel in self.coding_frame.panels:
+#            for k, v in panel.coding.items():
+#                for button in v['buttons']:
+#                    button.configure(state=tkinter.NORMAL)
 
     def config_specifications(self,st):
         self.spec_frame.person_ent.configure(state=st)
@@ -183,7 +190,8 @@ class SpecificationFrame(tkinter.LabelFrame):
         mode_lab.grid(column=0, row=1, sticky=tkinter.W)
 
         self.mode_ent = tkinter.Entry(self, 
-                                      textvariable=application.player_mode, 
+# FIXME: application.player_mode shoul be related to playercontrol
+                                      textvariable=parent.player_mode, 
                                       disabledbackground=disabled_bg,
                                       state=tkinter.DISABLED,
                                       width=21)
@@ -192,7 +200,8 @@ class SpecificationFrame(tkinter.LabelFrame):
         period_lab = tkinter.Label(self, text='Step: ')
         period_lab.grid(column=2, row=1)
         self.period_ent = tkinter.Entry(self, 
-                                      textvariable=application.period_display,
+                                      # textvariable=application.period_display,
+                                      textvariable=parent.period_display,
                                       disabledbackground=disabled_bg,
                                       state=tkinter.DISABLED,
                                       width=5)

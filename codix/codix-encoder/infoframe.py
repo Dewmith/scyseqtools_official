@@ -24,13 +24,9 @@ class InfoFrame(tkinter.LabelFrame):
         tkinter.LabelFrame.__init__(self, parent)
         self.application = parent
 
-        self.configure(background=info_bg, 
-                       borderwidth=bd,
-                       padx=20, pady=20, 
-                       relief=relief,
-                       text='Information: ', font=(tkinter.font.BOLD,))
-        self.grid(column=1,
-                  row=0)
+        self.configure(background=info_bg, borderwidth=bd, padx=20, pady=20, 
+                       relief=relief, text='Information: ', font=(tkinter.font.BOLD,))
+        self.grid(column=1, row=0)
         
         # Media File
         self.media_label = tkinter.Label(self, text='Media file: ', 
@@ -83,16 +79,15 @@ class InfoFrame(tkinter.LabelFrame):
     def ask_media(self):
         """Load media file
         """
-        self.media_load.config(state='disabled')
+# FIXME: ne devrait être fait que quand on est sûr d'avoir chargé le fichier
+#        self.media_load.config(state='disabled')
+# cf. fin de ask_media
+
         fname = "/home/leo/Bureau/leo_dev/video/164360 (720p).mp4"
-#        if os.path.exists(fname):
-#            fileInfo = MediaInfo.parse(fname)
-#            for track in fileInfo.tracks:
-#                if track.track_type == "Video" or track.track_type == "Audio":
-#                    self.loaded_media = True 
-#                    self.application.read_media(fname)
+        
         if os.path.exists(fname) and U.is_valid_media(fname):
-            self.loaded_media = True 
+        # lpcomment loaded_media est une variable de l'application
+        #    self.loaded_media = True 
             self.application.read_media(fname)
         else:
             is_valid = False
@@ -101,26 +96,24 @@ class InfoFrame(tkinter.LabelFrame):
                                     initialdir=os.path.expanduser('~'))
                 self.loaded_media=False
                 if U.is_valid_media(fname):
-#                    fileInfo = MediaInfo.parse(fname)
-#                    for track in fileInfo.tracks:
-#                        if track.track_type == "Video" or track.track_type == "Audio":
                     is_valid = True
-                    self.loaded_media = True 
+        # lpcomment loaded_media est une variable de l'application
+        #            self.loaded_media = True 
                     self.application.read_media(fname)
                 else:
 #                    if not self.media_loaded:
                     tkinter.messagebox.showinfo('Cannot load', "Cannot load %s file" % fname)
                     self.ask_media()
-#                else :
-#                    tkinter.messagebox.showinfo('Cannot load', "File doesn't exist %s file" % fname)
-#                    self.ask_media()
 
+        # lpcomment: c'est pas mieux ici?
+        self.media_load.config(state='disabled')
         self.code_load.config(state='normal')
         
         # FIXME: make this more systematic...
-        self.application.period_display.set(self.application.control.default_period)
-        self.application.player_mode.set('regular')
-         
+
+# lpcomment: qu'est-ce que ça fait là!?
+# c'est du player, non!?
+#        self.application.period_display.set(self.application.control.default_period)
     def ask_code(self):
             """Loading files defining a coding framework.
             Now only supports the new .jod (json) files

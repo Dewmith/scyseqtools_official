@@ -220,6 +220,13 @@ class Application(tkinter.Tk):
         - code and media file names
         - encoding specifications 
         """
+        self.control.config_buttons({self.control.play_but : 'disabled', 
+                                    self.control.back_but : 'disabled',
+                                    self.control.forward_but : 'disabled', 
+                                    self.control.mode_check : 'disabled',
+                                    self.control.period_ent : 'disabled'})
+        
+
         observer = self.framework.spec_frame.person.get()
         while observer == '' or observer is None :
             name = tkinter.simpledialog.askstring('Please identify', 'Please identify yourself')
@@ -255,7 +262,6 @@ class Application(tkinter.Tk):
                 self.max_step = len(self.container['times']) - 1
                 self.current_step = 0
                 self.data_loaded = True
-                # self.framework.disable_codes()
                 print(self.container)
                 self.info.data_save.configure(state=tkinter.NORMAL)
     #                    if self.current_step == 0 or \
@@ -263,11 +269,10 @@ class Application(tkinter.Tk):
     #                    while self.control.player.get_state() != 5: # 5: Stopped
     #                        print(self.control.player.get_state())
     #                        # time.sleep(5)
-    #                    if self.control.player.get_state() == 4: # 4: Paused
-    #                        self.current_step += 1
-    #                        print("current step: ", self.current_step)
+                if self.control._state == 'paused': # 4: Paused
+                    self.current_step += 1
+                    print("current step: ", self.current_step)
     #                        self.config_processing_buttons('normal')
-    #                        #    print(self.container)
             else:
                 raise NotImplementedError('Continuous coding is not implemented')
             
@@ -367,12 +372,23 @@ class Application(tkinter.Tk):
         Record a step
         """
         # local "pointers"
+
+        ##  leocomment a mettre a la fin 
+        """ self.control.config_buttons({self.control.play_but : 'normal', 
+                                        self.control.back_but : 'normal',
+                                        self.control.forward_but : 'normal', 
+                                        self.control.mode_check : 'normal',
+                                        self.control.period_ent : 'normal'})
+        self.framework.config_processing_buttons('disabled') """
+        
+        
         panellist = self.framework.coding_frame.panels
         times = self.container['times']
         comments = self.container['comments']
 
         mode = self.player_mode.get()
         if mode == 'regular': # regular sampling
+            print("€€€€ 1 " , self.current_step)
             if self.current_step < 0: # Should not happen...
                 tkinter.messagebox.showinfo('Before beginning', 'Before beginning')
                 return
@@ -382,6 +398,7 @@ class Application(tkinter.Tk):
                 return
             else:
                 # First passage for checking presence of all symbols
+                print("€€€€ 2 " , self.current_step)
                 tmp_symbol = {}
                 for pan in panellist:
                     tmp_symbol[pan.name] = {}
@@ -400,33 +417,32 @@ class Application(tkinter.Tk):
                 local_comment = self.framework.coding_frame.comment.get()
 
                 # Seconde passage to record the symbol
-
-                print('ct_step', self.current_step, 'ct_time', self.current_time)
+                print("€€€€ 3 ")
+                print('ct_step', self.current_step, 'ct_time', self.current_time, 'time', times)
 
                 if self.current_step == len(times):
                     print('==')
                     times.append(self.current_time)
                     comments.append(local_comment)
+                    
                     for pan in panellist:
                         # print pan.name # rec_site
                         for cname,v in pan.coding.items():
                             sequence = self.container['data'][pan.name][cname]['seq']
                             tsymbol = tmp_symbol[pan.name][cname]
                             sequence.append(self.str2int[pan.name][cname][tsymbol])
+                        print(str(sequence))
                 else:
                     print('else')
                     times[self.current_step] = self.current_time
-                    comments[self.current_step - 1] = local_comment
+                    comments[self.current_step ] = local_comment
                     for pan in panellist:
                         # print pan.name # rec_site
                         for cname,v in pan.coding.items():
                             sequence = self.container['data'][pan.name][cname]['seq']
                             tsymbol = tmp_symbol[pan.name][cname]
-                            sequence[self.current_step - 1] = self.str2int[pan.name][cname][tsymbol]
-            
-            self.control.play_but.configure(state=tkinter.NORMAL)
-            self.control.back_but.configure(state=tkinter.NORMAL)
-            self.control.forward_but.configure(state=tkinter.NORMAL)
+                            sequence[self.current_step ] = self.str2int[pan.name][cname][tsymbol]
+                      
             try:
                 self.display_codes(self.current_step)
             except IndexError:

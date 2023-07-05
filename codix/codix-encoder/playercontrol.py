@@ -103,12 +103,16 @@ class PlayerControl(tkinter.LabelFrame):
         tt = Timer(dt, self.dopause)
         self.player.play()
         tt.start()
+        
+        self._root().framework.spec_frame.start_but.config(state='normal')
+        
 
     
     def cont_play(self):
         print('Start play: ', self._root().current_time)
         self.state = "c_playing"
         self.player.play()
+        self._root().framework.spec_frame.start_but.config(state='disabled')
 
     def dopause(self):
         self.player.set_pause(do_pause=1)
@@ -116,7 +120,11 @@ class PlayerControl(tkinter.LabelFrame):
 
     def playpause(self):
         mode = self._root().player_mode.get()
+        
+        print(mode)
         if mode =='regular':
+            self._root().framework.spec_frame.start_but.config(state='disabled')
+            self._root().framework.spec_frame.start_but.update()
             period = self.get_period()
             if period is not None :
                 itime = self.player.get_time()
@@ -137,12 +145,14 @@ class PlayerControl(tkinter.LabelFrame):
             if self.state == "c_playing": 
                 self.dopause()
                 self.set_time(self.player.get_time())
+                self._root().framework.spec_frame.start_but.config(state='normal')
 
             elif self.state == "paused":
                 self.cont_play()           
             
             else:
                 raise ValueError(f'Unknown player state ' + self.state)
+            
             
      
     def backward(self):

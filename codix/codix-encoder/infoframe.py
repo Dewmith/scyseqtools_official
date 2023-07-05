@@ -119,6 +119,7 @@ class InfoFrame(tkinter.LabelFrame):
         
         # FIXME: make this more systematic...
         self.application.period_display.set(self.application.control.default_period)
+        self.application.player_mode.set('regular')
          
     def ask_code(self):
             """Loading files defining a coding framework.

@@ -54,10 +54,6 @@ class FrameworkFrame(tkinter.LabelFrame):
 #        except IndexError:
 #            pass
 ####
-        for panel in self.coding_frame.panels:
-            for k, v in panel.coding.items():
-                for button in v['buttons']:
-                    button.configure(state=tkinter.NORMAL)
 
     def config_specifications(self,st):
         self.spec_frame.person_ent.configure(state=st)

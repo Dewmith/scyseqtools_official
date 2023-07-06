@@ -231,7 +231,6 @@ class SpecificationFrame(tkinter.LabelFrame):
 
 
 
-
 # FIXME: is it useful to pause / stop recording?
 #        stop_but = Tkinter.Button(self, text='Stop\nrecording',
 #                                                  command=application.stop_record)

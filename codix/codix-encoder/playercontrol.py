@@ -121,16 +121,19 @@ class PlayerControl(tkinter.LabelFrame):
         print('Start play: ', self.time)
         self.state = "c_playing"
         self.player.play()
-        self._root().framework.spec_frame.start_but.config(state='disabled')
+        
 
     def dopause(self):
         self.player.set_pause(do_pause=1)
         self.state = "paused"
+        if self.application.is_code():
+            self._root().framework.spec_frame.start_but.config(state='normal')
 
     def playpause(self):
+        if self.application.is_code() :
+            self._root().framework.spec_frame.start_but.config(state='disabled')
 
-
-# FIXME: le player_mode est une prorpiété du player pas de l'application
+#print FIXME: le player_mode est une propiété du player pas de l'application
         # mode = self._root().player_mode.get()
         
         if self.mode == 'regular':
@@ -158,6 +161,7 @@ class PlayerControl(tkinter.LabelFrame):
         if self.mode =='continuous':
             if self.state == "c_playing": 
                 self.dopause()
+                
 
                 # self.set_time(self.player.get_time())
                 self.time = self.player.get_time()
@@ -265,6 +269,7 @@ class PlayerControl(tkinter.LabelFrame):
     #                        self.erase_codes()
     #            else:
     #                self.free_step(1, 'Free forward')
+            self.application.period
 
     def kb_set_time(self, tkevent):
         """

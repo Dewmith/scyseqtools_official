@@ -72,7 +72,7 @@ class InfoFrame(tkinter.LabelFrame):
                                         command=self.ask_data)
         self.data_load.grid(row=3, column=2, sticky=tkinter.W)
         self.data_save = tkinter.Button(self, text='Save',
-                                        command=parent.save_data,
+                                        command=self.save_data,
                                         state=tkinter.DISABLED)
         self.data_save.grid(row=3, column=3, sticky=tkinter.W)
 
@@ -81,8 +81,8 @@ class InfoFrame(tkinter.LabelFrame):
     def ask_media(self):
         """Load media file
         """
-        fname = "/home/leo/Bureau/leo_dev/video/164360 (720p).mp4"
-        
+        # fname = "/home/leo/Bureau/leo_dev/video/164360 (720p).mp4"
+        fname = "/home/zarpe/Documents/videos_synchrony/vidéosynchrony/208_S2.MPG"  
         if os.path.exists(fname) and U.is_valid_media(fname):
             self.media_file.set(fname)
             self.application.make_media_player(fname)
@@ -156,6 +156,33 @@ class InfoFrame(tkinter.LabelFrame):
 #            self.data_loaded = True
 #            self.application.start_processing()
 
+#    def save(self):
+#        filename = self.data_file.get()
+#        datafile = open(filename, 'w')
+#        json.dump(self.container, datafile)
+#        datafile.close()
+#        print('Data saved in %s' % filename)
+#    
+#    def save_as(self):
+#        filename = tkinter.filedialog.asksaveasfilename()
+#        # FIXME: does not work if file already exists
+#        if U.is_valid_filename(filename):
+#            datafile = open(filename, 'w')
+#            json.dump(self.container, datafile)
+#            datafile.close()
+#            print('Data saved in %s' % filename)
+#            self.data_file.set(filename)
+#            self.menu.fileMenu.entryconfig(8, state=tkinter.NORMAL) # Save
+#            self.menu.fileMenu.entryconfig(9, state=tkinter.DISABLED) # Save as
+#        else:
+#            tkinter.messagebox.showinfo('File not saved', 'File has not been saved')
+#
+    def save_data(self):
+        raise NotImplementedError
+#        if self.data_file.get() == '':
+#            self.save_as()
+#        else:
+#            self.save()
     def change_color(self, event):
         colortuple = askcolor()
         # print colortuple

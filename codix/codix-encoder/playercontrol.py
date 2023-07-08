@@ -98,7 +98,9 @@ class PlayerControl(tkinter.LabelFrame):
                                   'Cannot get max time; this may cause problems')
         print('Length of media file: ', self.max_time, ' ms.')
 
-        self.application.state['media_loaded'] = True
+#        self.application.state['media_loaded'] = True
+
+        self.times = []
         
     def step_play(self, dt):
         self.play_but.update()
@@ -107,8 +109,6 @@ class PlayerControl(tkinter.LabelFrame):
         tt = Timer(dt, self.dopause)
         self.player.play()
         tt.start()
-        if self.application._context == 'processing' :
-            self.application.framework.config_processing_buttons('normal')
     
     def cont_play(self):
         print('Start continuous play at: ', self.time)
@@ -129,32 +129,27 @@ class PlayerControl(tkinter.LabelFrame):
                                  self.forward_but : 'disabled'})
 
     def playpause(self):
-        # if self.application.is_code() :
-        if self.application.state['code_loaded'] :
-            self._root().framework.spec_frame.start_but.config(state='disabled')
-        #if self.application._context == 'processing' :
-        #    self.application.framework.config_processing_buttons('normal')
+
         if self.mode == 'regular':
             if self.period is not None :
                 itime = self.player.get_time()
-
                 self.step_play(self.period)         
                 
                 while self.state != 'paused':
                     pass # wait for state == 'paused'
                 print('End time: ', self.time)
+
                 ftime = itime + int(self.period*1000)
                 self.time = ftime #, 'Synchronized time')
 
-                # FIXME: check how we deal with `step`...
-                # FIXME: do not use _root()...
-                if self._root().current_step is not None:
-                    self._root().current_step += 1
-                print('End PP current step: ', self._root().current_step)
+                if self.application.context == "processing":
+                    self.application.time_step = 1
+
+                    print('End PP time step: ', self.application.time_step)
             else:
                 pass
 
-        if self.mode =='continuous':
+        elif self.mode =='continuous':
             if self.state == "c_playing": 
                 self.dopause()
                 self.time = self.player.get_time()
@@ -164,94 +159,35 @@ class PlayerControl(tkinter.LabelFrame):
             
             else:
                 raise ValueError(f'Unknown player state ' + self.state)
+        else:
+
+            raise ValueError('Unknown player mode' + self.mode)
      
     def backward(self):
-        itime = self.time 
-        # FIXME: do not use _root()...
-        print('Start backward current step: ', self._root().current_step)
-        if self.mode == "continuous":
-            self.time = itime - DTIME
-
-        elif self.mode == 'regular':
-            if self.period is not None:
-# FIXME: context is not processing
-                # FIXME: do not use _root()...
-                if not self._root().data_loaded:
-                    self.time = itime - int(self.period*1000)
-                else:
-                    # FIXME: do not use _root()...
-                    cstep = self._root().current_step
-                    # if cstep is not None and cstep > 1:
-                    assert(cstep is not None)
-                    if cstep >= 1:
-                        self.set_time(itime - int(self.period*1000))
-                        # FIXME: do not use _root()...
-                        self._root().current_step -= 1
-                        print('End backward current step: ', self._root().current_step)
-                    else:
-                        tkinter.messagebox.showinfo('Value Error', 
-                              'Beginning of recording reached.')
-            else:
-                pass
-        else:
-            raise ValueError(f'Unknown player mode {self.mode}') 
-
-    #            dt = self._root().period_display.get()
-    #            if self.is_set_start_time:
-    #                self.referenced_step(-1, 'Referenced Back')
-    #                if self.is_recording:
-    #                    self.control.play_but.config(state=tkinter.NORMAL)
-    #                    self.framework.disable_codes()
-    #            else:
-    #                self.free_step(-1, 'Free back')
+        self.move('back')
 
     def forward(self):
-        itime = self.player.get_time()
-        # FIXME: do not use _root()...
-        print('Start forward current step: ', self._root().current_step)
+        self.move('forward')
+
+    def move(self, arg):
+        dtmp = {'back': -1, 'forward': 1}
+        ds = dtmp[arg]
+
+        itime = self.time 
         if self.mode == "continuous":
-            self.time = itime + DTIME
+            self.time = itime + ds * DTIME
+            # FIXME: no processing context taken into account.
 
         elif self.mode == 'regular':
+
             if self.period is not None:
-# See backward...
-                # FIXME: do not use _root()...
-                if not self._root().data_loaded:
-                    self.time = itime + int(self.period*1000)
+                if self.application.context != "processing":
+                    self.time = itime + ds * int(self.period * 1000)
                 else:
-# See backward...
-                    # FIXME: do not use _root()...
-                    cstep = self._root().current_step
-                    mstep = self._root().max_step
-                    # if cstep is not None and cstep > 1:
-                    assert(cstep is not None)
-                    if cstep <= mstep:
-                        self.time = itime + int(self.period*1000)
-                        self._root().current_step += 1
-                        print('End forward current step: ', self._root().current_step)
-                    else:
-                        tkinter.messagebox.showinfo('Value Error', 'End of recording reached.')
-            else:
-                pass
+                    self.application.time_step = ds
         else:
             raise ValueError(f'Unknown player mode {self.mode}') 
 
-    #        step = self.player_mode.get()
-    #        if step == "continuous":
-    #            self.control.continuous_forward()
-    #        elif step == 'step':
-    #            if self.is_set_start_time:
-    #                self.referenced_step(1, 'Referenced Forward')
-    #                if self.is_recording:
-    #                    self.control.play_but.config(state=tkinter.NORMAL)
-    #                    try:
-    #                        self.display_codes(self.current_step)# + 1)
-    #                    except IndexError:
-    #                        self.erase_codes()
-    #            else:
-    #                self.free_step(1, 'Free forward')
-
-    #        self.application.period
 
     def kb_set_time(self, tkevent):
         """

@@ -15,6 +15,7 @@ import tkinter
 import tkinter.filedialog
 import tkinter.messagebox
 import tkinter.simpledialog
+import tkinter.filedialog
 
 # tk colors : https://www.tcl.tk/man/tcl/TkCmd/colors.html
 
@@ -61,6 +62,12 @@ class Application(tkinter.Tk):
                           'data': {}} # data
         
         self._context = "standard" # lpcomment: intialize to None?
+# FIXME: add this when necessary
+#        self.cwd = ''
+#        self.cwd = tkinter.filedialog.askdirectory(title="Choose working directory",
+#                                              initialdir=os.path.expanduser('~'),
+#                                              mustexist=True)
+#        print('cwd: ', self.cwd)
 
 # Menu related functions
 #-----------------------
@@ -73,6 +80,7 @@ class Application(tkinter.Tk):
         self.menu.disable_actions()
 
     def start_session(self):
+
         self.info = InfoFrame(parent=self, 
                               states=(tkinter.NORMAL,    # load media
                                       tkinter.DISABLED,  # load code

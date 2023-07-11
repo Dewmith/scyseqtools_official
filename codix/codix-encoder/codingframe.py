@@ -20,8 +20,10 @@ class FrameworkFrame(tkinter.LabelFrame):
     def __init__(self, parent, filename):
 
         incode = self.load_code(filename)
-        encoding = incode['code']
+        self.encoding = incode['code']
         player = incode['player']
+
+        print(incode)
 
         tkinter.LabelFrame.__init__(self, parent)
         self.configure(background=coding_bg, 
@@ -40,38 +42,40 @@ class FrameworkFrame(tkinter.LabelFrame):
         self.spec_frame = SpecificationFrame(self)  
         self.spec_frame.grid(sticky=U.sticky_all)
 
-        self.coding_frame = CodingFrame(parent=self, encoding=encoding)
+        self.coding_frame = CodingFrame(parent=self, encoding=self.encoding)
         self.coding_frame.grid(column=0, columnspan=3, sticky=U.sticky_all)
         self.config_processing_buttons('disabled')
         self.bind('<Button-3>', self.change_color)
 
         self.data = {}
+        self.strdata = {}
 
     def load_code(self, fname):
 
         with open(fname, 'r') as ff:
-            encoding = json.load(ff)
+            localcode = json.load(ff)
 
-        period = encoding['period']
+        period = localcode['period']
         if period is None:
             mode = "continuous"
         else:
             mode = "regular"
 
-        sites = encoding['sites']
-        codes = encoding['codes']
+        sites = localcode['sites']
+        codes = localcode['codes']
         codeframe = {}
-        for site, scodes in encoding['sites'].items():
-            data_site = {}
+        for site, scodes in localcode['sites'].items():
+#            data_site = {}
             code_site = {}
             for lcode in scodes:
-                data_site.update({lcode: {'alphabet': codes[lcode], 'seq': []}})
+#                data_site.update({lcode: {'alphabet': codes[lcode], 'seq': []}})
                 code_site.update({lcode: codes[lcode]})
             # lpcomment application related 
             # self.container['data'].update({site: data_site})
             codeframe[site] = code_site
        
-        outcode = {'code': codeframe, 'player': ({'mode': mode, 'period': period})}
+        #outcode = {'code': codeframe, 'player': ({'mode': mode, 'period': period})}
+        outcode = {'code': codeframe, 'player': {'mode': mode, 'period': period}}
 
         return outcode
 
@@ -123,10 +127,13 @@ class FrameworkFrame(tkinter.LabelFrame):
         panellist = self.coding_frame.panels
         for pan in panellist:
             self.data[pan.name] = {}
+            self.strdata[pan.name] = {}
             for cname, v in pan.coding.items():
+                self.strdata[pan.name][cname] = []
                 self.data[pan.name][cname] = []
 
         print(self.data)
+        print(self.strdata)
 
     def display_codes(self, time_step):
         panellist = self.coding_frame.panels
@@ -148,7 +155,7 @@ class FrameworkFrame(tkinter.LabelFrame):
                     local_str = '-'
                 # try:
                 else:
-                    local_str = self.data[pan.name][cname][time_step-1]
+                    local_str = self.strdata[pan.name][cname][time_step-1]
 #                except:
                 v['var'].set(local_str)
 
@@ -197,26 +204,23 @@ class FrameworkFrame(tkinter.LabelFrame):
 #            assert (all([len(s) == len(lseq[0]) for s in lseq]))
 #
 #            coding_length = len(lseq[0])
-            time_step = self.application.time_step
+            
+            # time_step = self.application.time_step
+            # print('Time step: ', time_step)
 
-            print('coding_length: ', self.coding_length)
-            print('Time length: ', self.application.times_length)
-            print('Time step: ', time_step)
+            # print('Time length: ', self.application.times_length)
+
+            # print('coding_length: ', self.coding_length)
 
             if self.coding_length == self.application.times_length - 2:
                 # Append new symbol
-                for pan in panellist:
-                    for cname in pan.coding.keys():
-                        symbol = pan.coding[cname]['var'].get()
-                        self.data[pan.name][cname].append(symbol) # FIXME
+                self.set_data(method='append')
             else:
                 # Replace previous symbols
-                for pan in panellist:
-                    for cname in pan.coding.keys():
-                        symbol = pan.coding[cname]['var'].get()
-                        # self.data[pan.name][cname][time_step-1] = "m" # FIXME
-                        self.data[pan.name][cname][time_step-1] = symbol # FIXME
+                self.set_data(method='replace')
+
             print(self.data)
+            print(self.strdata)
 
             local_comment = self.coding_frame.comment.get()
             comments.append(local_comment)
@@ -270,6 +274,26 @@ class FrameworkFrame(tkinter.LabelFrame):
         else: # continuous coding
             raise NotImplementedError
 
+    def set_data(self, method):
+        panellist = self.coding_frame.panels
+        time_step = self.application.time_step
+        for pan in panellist:
+            for cname in pan.coding.keys():
+                symbol = pan.coding[cname]['var'].get()
+                intval = self.encoding[pan.name][cname].index(symbol)
+                if method == "append":
+                # if self.coding_length == self.application.times_length - 2:
+                    # Append new symbol
+                    self.strdata[pan.name][cname].append(symbol) # FIXME
+                    self.data[pan.name][cname].append(intval) # FIXME
+                elif method == "replace":
+                    # Replace previous symbols
+                    self.strdata[pan.name][cname][time_step-1] = symbol # FIXME
+                    self.data[pan.name][cname][time_step-1] = intval # FIXME
+
+                else:
+                    # raise error?
+                    pass
 
     @property
     def coding_length(self):

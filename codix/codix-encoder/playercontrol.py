@@ -117,15 +117,6 @@ class PlayerControl(tkinter.LabelFrame):
         self.player.set_pause(do_pause=1)
         self.state = "paused"
 
-# FIXME: maybe should be in state.setter ^^^
-        if self.application.state['code_loaded'] and self.application.context != 'processing':
-            self._root().framework.spec_frame.start_but.config(state='normal')
-            
-        if self.application.state['code_loaded'] and self.application.context == 'processing':
-            self.config_buttons({self.play_but :'disabled',
-                                 self.back_but : 'disabled',
-                                 self.forward_but : 'disabled'})
-# ^^^ Check with context and so on...
 
     def playpause(self):
 
@@ -265,19 +256,47 @@ class PlayerControl(tkinter.LabelFrame):
             self._state = "paused"
             print('State: paused')
 
-# FIXME: Not sure processing is useful -> done in application.context setter?
-            if self.application.context == "processing":
-                self.config_buttons({self.play_but : 'normal', 
-                                     self.back_but : 'normal',
-                                     self.forward_but : 'normal', 
-                                     self.mode_check : 'disabled',
-                                     self.period_ent : 'disabled'})
-            else:
+            if self.application.context != 'processing':
                 self.config_buttons({self.play_but : 'normal', 
                                      self.back_but : 'normal',
                                      self.forward_but : 'normal', 
                                      self.mode_check : 'normal',
                                      self.period_ent : 'normal'})
+# FIXME: why do we need to deal with framework state here!?
+                if self.application.state['code_loaded']: # and self.application.context != 'processing':
+                    self._root().framework.spec_frame.start_but.config(state='normal')
+            # processing => code_loaded    
+            # if self.application.state['code_loaded'] and self.application.context == 'processing':
+            elif self.application.context == 'processing':
+                self.config_buttons({self.play_but :'disabled',
+                                     self.back_but : 'disabled',
+                                     self.forward_but : 'disabled'})
+
+# *** From dopause ***
+## FIXME: maybe should be in state.setter ^^^
+#            if self.application.state['code_loaded'] and self.application.context != 'processing':
+#                self._root().framework.spec_frame.start_but.config(state='normal')
+#                
+#            if self.application.state['code_loaded'] and self.application.context == 'processing':
+#                self.config_buttons({self.play_but :'disabled',
+#                                     self.back_but : 'disabled',
+#                                     self.forward_but : 'disabled'})
+## ^^^ Check with context and so on...
+# *** END from dopause ***
+
+## FIXME: Not sure processing is useful -> done in application.context setter?
+#            if self.application.context == "processing":
+#                self.config_buttons({self.play_but : 'normal', 
+#                                     self.back_but : 'normal',
+#                                     self.forward_but : 'normal', 
+#                                     self.mode_check : 'disabled',
+#                                     self.period_ent : 'disabled'})
+#            else:
+#                self.config_buttons({self.play_but : 'normal', 
+#                                     self.back_but : 'normal',
+#                                     self.forward_but : 'normal', 
+#                                     self.mode_check : 'normal',
+#                                     self.period_ent : 'normal'})
 
     @property
     def mode(self):

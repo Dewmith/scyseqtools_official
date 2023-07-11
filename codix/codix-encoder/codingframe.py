@@ -22,8 +22,7 @@ class FrameworkFrame(tkinter.LabelFrame):
         incode = self.load_code(filename)
         self.encoding = incode['code']
         player = incode['player']
-
-        print(incode)
+#        print(incode)
 
         tkinter.LabelFrame.__init__(self, parent)
         self.configure(background=coding_bg, 
@@ -49,6 +48,7 @@ class FrameworkFrame(tkinter.LabelFrame):
 
         self.data = {}
         self.strdata = {}
+        self.coding_comments = []
 
     def load_code(self, fname):
 
@@ -65,16 +65,11 @@ class FrameworkFrame(tkinter.LabelFrame):
         codes = localcode['codes']
         codeframe = {}
         for site, scodes in localcode['sites'].items():
-#            data_site = {}
             code_site = {}
             for lcode in scodes:
-#                data_site.update({lcode: {'alphabet': codes[lcode], 'seq': []}})
                 code_site.update({lcode: codes[lcode]})
-            # lpcomment application related 
-            # self.container['data'].update({site: data_site})
             codeframe[site] = code_site
        
-        #outcode = {'code': codeframe, 'player': ({'mode': mode, 'period': period})}
         outcode = {'code': codeframe, 'player': {'mode': mode, 'period': period}}
 
         return outcode
@@ -121,7 +116,6 @@ class FrameworkFrame(tkinter.LabelFrame):
             self.application.control.period = self.period_display.get()
             # Set initial time
             self.init_data()
-            self.application.time_step = 0
 
     def init_data(self):
         panellist = self.coding_frame.panels
@@ -144,24 +138,20 @@ class FrameworkFrame(tkinter.LabelFrame):
                 if time_step == 0 or \
                     (time_step == self.application.times_length-1 and \
                     self.coding_length == self.application.times_length-2):
-#                    v['var'].set('-')
-##                elif time_step == self.application.max_step - 1:
-##                    v['var'].set('t-1')
-#                else:
-#                    local_str = self.data[pan.name][cname][time_step - 1]
-#                    # local_int = sequence[step]
-#                    # local_str = self.int2str[pan.name][cname][local_int]
-#                    v['var'].set(local_str)
                     local_str = '-'
-                # try:
+                    comment = ''
                 else:
                     local_str = self.strdata[pan.name][cname][time_step-1]
-#                except:
+                    comment = self.comments[time_step-1]
                 v['var'].set(local_str)
 
-# FIXME: deal with comments later...
-#        comment = self.comments[time_step]
-#        self.framework.coding_frame.comment.set(comment)
+        if time_step == 0 or \
+            (time_step == self.application.times_length-1 and \
+            self.coding_length == self.application.times_length-2):
+            comment = ''
+        else:
+            comment = self.comments[time_step-1]
+        self.framework.coding_frame.comment.set(comment)
 
 
 
@@ -194,82 +184,18 @@ class FrameworkFrame(tkinter.LabelFrame):
             self.config_processing_buttons('disabled')
 
             # Second passage to record the symbols
-#            for pan in panellist:
-#                self.data[pan.name] = {}
-#                for cname, v in pan.coding.items():
-#                    self.data[pan.name][cname] = []
-
-#            lseq = [self.data[site.name][code] for site in panellist 
-#                                               for code in site.coding.keys()]
-#            assert (all([len(s) == len(lseq[0]) for s in lseq]))
-#
-#            coding_length = len(lseq[0])
-            
-            # time_step = self.application.time_step
-            # print('Time step: ', time_step)
-
-            # print('Time length: ', self.application.times_length)
-
-            # print('coding_length: ', self.coding_length)
-
             if self.coding_length == self.application.times_length - 2:
-                # Append new symbol
+                # Append new symbol / comment
                 self.set_data(method='append')
             else:
-                # Replace previous symbols
+                # Replace previous symbols / comments
                 self.set_data(method='replace')
 
             print(self.data)
             print(self.strdata)
+            print(self.coding_comments)
 
-            local_comment = self.coding_frame.comment.get()
-            comments.append(local_comment)
             self.application.context = 'processing'
-#            sequence = []
-#
-#            print('RECORD THE DATA...')
-#            self.application.time_step = 1
-            
-#            for pan in panellist:
-#                # print pan.name # rec_site
-#                for cname,v in pan.coding.items():
-#                    # sequence = self.application.container['data'][pan.name][cname]['seq']
-#                    tsymbol = tmp_symbol[pan.name][cname]
-#                    print(sequence, tsymbol)
-#                    #sequence.append(self.str2int[pan.name][cname][tsymbol])
-#                    sequence.append([pan.name][cname][tsymbol])
-#                print(str(sequence))
-
-            # FIXME: deal with steps_idx
-            # self.coding_steps.append('data')
-
-#            print('Times', self.application.control.times)
-#            print('Current time index', self.application.control.current_time_idx)
-#            print('Coding steps', self.coding_steps)
-#            self.config_processing_buttons('disabled')
-#
-#            self.application.control.play_but.config(state='normal')
-#            self.application.control.back_but.config(state='normal')
-
-#            else:
-#                print('else')
-#                times[self.application.current_step] = self.application.current_time
-#                comments[self.application.current_step ] = local_comment
-#                for pan in panellist:
-#                    # print pan.name # rec_site
-#                    for cname,v in pan.coding.items():
-#                        sequence = self.application.container['data'][pan.name][cname]['seq']
-#                        tsymbol = tmp_symbol[pan.name][cname]
-#                        print(sequence, tsymbol)
-#                        #sequence[self.application.current_step ] = self.str2int[pan.name][cname][tsymbol]
-#                        sequence[self.application.current_step ] = [pan.name][cname][tsymbol]
-##        try:
-##            self.application.display_codes(self.current_step)
-##        except IndexError:
-##            self.application.erase_codes()
-##        self.spec_frame.disable_codes()
-##        print(self.application.container)
-##        self.application.save_data()
 
         else: # continuous coding
             raise NotImplementedError
@@ -282,7 +208,6 @@ class FrameworkFrame(tkinter.LabelFrame):
                 symbol = pan.coding[cname]['var'].get()
                 intval = self.encoding[pan.name][cname].index(symbol)
                 if method == "append":
-                # if self.coding_length == self.application.times_length - 2:
                     # Append new symbol
                     self.strdata[pan.name][cname].append(symbol) # FIXME
                     self.data[pan.name][cname].append(intval) # FIXME
@@ -290,10 +215,15 @@ class FrameworkFrame(tkinter.LabelFrame):
                     # Replace previous symbols
                     self.strdata[pan.name][cname][time_step-1] = symbol # FIXME
                     self.data[pan.name][cname][time_step-1] = intval # FIXME
-
-                else:
-                    # raise error?
+                else: # raise error?
                     pass
+
+        # deal with coding comments
+        local_comment = self.coding_frame.comment.get()
+        if method == "append":
+            self.coding_comments.append(local_comment)
+        elif method == "replace":
+            self.coding_comments[time_step-1] = local_comment
 
     @property
     def coding_length(self):
@@ -309,7 +239,6 @@ class FrameworkFrame(tkinter.LabelFrame):
         # print colortuple
         self.configure(background=colortuple[1]) 
 
-
     def config_processing_buttons(self,st):
         self.coding_frame.record_but.configure(state=st)
         self.coding_frame.comment_ent.configure(state=st)
@@ -317,13 +246,6 @@ class FrameworkFrame(tkinter.LabelFrame):
             for k, v in panel.coding.items():
                 for button in v['buttons']:
                     button.configure(state=st)
-
-## FIXME: what is this try/except for?
-#        try:
-#            self._root().display_codes(step=self._root().current_step - 1)
-#        except IndexError:
-#            pass
-####
 
     def config_specifications(self,st):
         self.spec_frame.person_ent.configure(state=st)
@@ -419,7 +341,6 @@ class SpecificationFrame(tkinter.LabelFrame):
         self.configure(text='Specifications', padx=10, pady=10)
         # application = parent.application
         self.parent = parent
-
 
         # date in local format
         self.timestamp = tkinter.StringVar()

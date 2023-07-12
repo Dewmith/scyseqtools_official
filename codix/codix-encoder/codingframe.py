@@ -139,10 +139,8 @@ class FrameworkFrame(tkinter.LabelFrame):
                     (time_step == self.application.times_length-1 and \
                     self.coding_length == self.application.times_length-2):
                     local_str = '-'
-                    comment = ''
                 else:
                     local_str = self.strdata[pan.name][cname][time_step-1]
-                    comment = self.comments[time_step-1]
                 v['var'].set(local_str)
 
         if time_step == 0 or \
@@ -150,10 +148,8 @@ class FrameworkFrame(tkinter.LabelFrame):
             self.coding_length == self.application.times_length-2):
             comment = ''
         else:
-            comment = self.comments[time_step-1]
-        self.framework.coding_frame.comment.set(comment)
-
-
+            comment = self.coding_comments[time_step-1]
+        self.coding_frame.comment.set(comment)
 
 #    def erase_codes(self):
 #        panellist = self.framework.coding_frame.panels

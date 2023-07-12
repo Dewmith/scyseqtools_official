@@ -21,8 +21,6 @@ import tkinter.filedialog
 
 from pathlib import Path
 from datetime import datetime # datetime.now().strftime('%c')
-from pymediainfo import MediaInfo
-
 
 import utils as U
 
@@ -51,7 +49,7 @@ class Application(tkinter.Tk):
                        'code_loaded': False,
                        'data_loaded': False}
 
-        self.__time_step = 0
+        self.__time_step = None
 
         self.container = {'history': [], # [(date, observer, comment), ...]
                           'media': '', # path for the media file
@@ -163,8 +161,7 @@ class Application(tkinter.Tk):
                 self.control.back_but.config(state='normal')
                 self.control.forward_but.config(state='normal')
             self.framework.display_codes(self.time_step)
-        else:
-# FIXME: raise error?
+        else: # FIXME: raise error?
             pass
 
     @property

@@ -314,16 +314,16 @@ class PlayerControl(tkinter.LabelFrame):
     def mode(self):
         return self._mode.get()
 
-    # @mode.setter
-    # def mode(self, value):
-    #     if value == "regular":
-    #         self._mode.set(value)
-    #         print('Mode: regular')
-    #     elif value == "continuous":
-    #         self._mode.set(value)
-    #         print('Mode: continuous')
-    #     else:
-    #         raise ValueError
+    @mode.setter
+    def mode(self, value):
+        if value == "regular":
+            self._mode.set(value)
+            print('Mode: regular')
+        elif value == "continuous":
+            self._mode.set(value)
+            print('Mode: continuous')
+        else:
+            raise ValueError
 
     @property
     def period(self):

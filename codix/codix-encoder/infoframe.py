@@ -71,10 +71,7 @@ class InfoFrame(tkinter.LabelFrame):
                                         state=states[2],
                                         command=self.ask_data)
         self.data_load.grid(row=3, column=2, sticky=tkinter.W)
-        self.data_save = tkinter.Button(self, text='Save',
-                                        command=self.save_data,
-                                        state=tkinter.DISABLED)
-        self.data_save.grid(row=3, column=3, sticky=tkinter.W)
+        
 
         self.bind('<Button-3>', self.change_color)
 
@@ -183,12 +180,7 @@ class InfoFrame(tkinter.LabelFrame):
         else:
             tkinter.messagebox.showinfo('File not saved', 'File has not been saved')
 
-    def save_data(self):
-#        raise NotImplementedError
-        if self.data_file.get() == '':
-            self.save_as()
-        else:
-            self.save()
+    
 
     def change_color(self, event):
         colortuple = askcolor()

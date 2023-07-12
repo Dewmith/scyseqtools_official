@@ -127,34 +127,62 @@ class InfoFrame(tkinter.LabelFrame):
         self.code_load.config(state='disabled')
 
     def ask_data(self):
-        raise NotImplementedError()
-#            fname = tkinter.filedialog.askopenfilename(filetypes=[('Codix data file', '*.cdx')],
-#                                                    initialdir=os.path.expanduser(self.application.cwd))
-#            if U.is_valid_filename(fname): 
-#                self.read_data(fname)
-#            else:
-#                tkinter.messagebox.showinfo('Cannot load', 'Cannot load %s file' % fname)
-#
-#    def read_data(self, fname):
-#            with open(fname, 'r') as ff:
-#                data = json.load(ff)
-#            self.application.data_file.set(fname)
-#            self.application.code_file.set('Retrieved from data file')
-#            self.application.container.update(data)
-#            self.application.parse_code(self.container['code'])
-#            # self.code_loaded = True
-#            print(self.application.container)
-#
-#            # Quickly deals with non existent file
-#            # First: load media
-#            mfile = Path(self.application.container['media'])
-#            if mfile.is_file():
-#                self.application.make_media_player(self.application.container['media'])
-#            else:
-#                tkinter.messagebox.showinfo('Problem with media file', 
-#                                            'Cannot find media file')
-#            self.data_loaded = True
-#            self.application.start_processing()
+        
+        #fname = "/home/leo/codix-suite/codix/codix-encoder/new_record"
+
+        fname = tkinter.filedialog.askopenfilename(filetypes=[('Codix data file', '*.cdx')],
+                                                    initialdir=os.path.expanduser(self.application.cwd))
+        if U.is_valid_filename(fname): 
+            self.read_data(fname)
+            self.data_load.config(state='disabled')
+        else:
+            tkinter.messagebox.showinfo('Cannot load code file', " Media file doesn't exist or not in directory %s "  % fname)
+
+
+    def read_data(self, fname):
+        with open(fname, 'r') as ff:
+            data = json.load(ff)
+        code = data['code']['project'] + ".jod"
+        media = data['media']
+        if os.path.exists(media) and U.is_valid_media(media):
+            self.media_file.set(media)
+            self.application.make_media_player(media)
+        else :
+            tkinter.messagebox.showinfo('Cannot load media file', " Media file doesn't exist or not in directory %s "  % media)
+        if os.path.exists(code): # and U.is_valid_filename(code):
+            self.code_file.set(code)
+            self.application.make_coding_frame(code)
+        else :
+            tkinter.messagebox.showinfo('Cannot load code file', " Code file doesn't exist or not in directory %s "  % code)
+        
+        ## TODO : mettre les bons éléments dans le container
+
+
+        # self.application.data_file.set(fname)
+        # self.application.code_file.set('Retrieved from data file')
+        # self.application.container.update(data)
+        # self.application.parse_code(self.container['code'])
+        # self.code_loaded = True
+        # print(self.application.container)
+
+        # # Quickly deals with non existent file
+        # # First: load media
+        # mfile = Path(self.application.container['media'])
+        # if mfile.is_file():
+        #     self.application.make_media_player(self.application.container['media'])
+        # else:
+        #     tkinter.messagebox.showinfo('Problem with media file', 
+        #                                 'Cannot find media file')
+        #    self.data_loaded = True
+        #    self.application.start_processing()
+
+    def save_data(self):
+#        raise NotImplementedError
+        if self.data_file.get() == '':
+            self.save_as()
+        else:
+            self.save()
+
 
     def save(self):
         filename = self.data_file.get()

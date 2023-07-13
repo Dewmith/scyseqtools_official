@@ -56,6 +56,7 @@ class Application(tkinter.Tk):
 
         self.container = {'history': [], # [(date, observer, comment), ...]
                           'media': '', # path for the media file
+                          'find_code': '',
                           'code': {}, # dictionary taken from the code file
                           'times': [], # sample times (in ms) taken from the player
                           'comments': [], # sample comments taken from codingframe

@@ -92,7 +92,7 @@ class InfoFrame(tkinter.LabelFrame):
                 media_folder = os.path.join(os.path.expanduser(self.application.cwd), 'media') 
 
                 # fname = tkinter.filedialog.askopenfilename(initialdir=os.path.expanduser(self.application.cwd))
-                fname = tkinter.filedialog.askopenfilename(initialdir=media_path)
+                fname = tkinter.filedialog.askopenfilename(initialdir=media_folder)
                 # self.loaded_media=False # Not Useful?
                 if U.is_valid_media(fname):
                     is_valid = True
@@ -133,7 +133,7 @@ class InfoFrame(tkinter.LabelFrame):
                 self.application.make_coding_frame(fname)
             else:
                 tkinter.messagebox.showinfo('Cannot load code file', 'Cannot load %s file' % fname)
-
+        self.application.container['find_code'] = fname
         self.code_load.config(state='disabled')
 
     def ask_data(self):
@@ -142,7 +142,7 @@ class InfoFrame(tkinter.LabelFrame):
 
         data_folder = os.path.join(os.path.expanduser(self.application.cwd), 'data')
         data_filetypes = [('Codix data file', '*.cdx'), ('All files', '*.*')]
-
+        
         fname = tkinter.filedialog.askopenfilename(filetypes= data_filetypes,
                                                    initialdir= data_folder)
         if U.is_valid_filename(fname): 
@@ -158,10 +158,10 @@ class InfoFrame(tkinter.LabelFrame):
             data = json.load(ff)
 
         self.application.state['data_loaded'] = True
-        
+        print(data)
         # lpcomment: we do this in newcode BUT user can change the name of the
         # code file and this is not written in the codefile
-        code = data['code']['project'] + ".jod"
+        code = data['find_code']
         media = data['media']
         if os.path.exists(media) and U.is_valid_media(media):
             self.media_file.set(media)
@@ -173,10 +173,7 @@ class InfoFrame(tkinter.LabelFrame):
             self.application.make_coding_frame(code)
         else :
             tkinter.messagebox.showinfo('Cannot load code file', " Code file doesn't exist or not in directory %s "  % code)
-        
         ## TODO : mettre les bons éléments dans le container
-
-
         # self.application.data_file.set(fname)
         # self.application.code_file.set('Retrieved from data file')
 
@@ -206,19 +203,22 @@ class InfoFrame(tkinter.LabelFrame):
 
 
     def save(self):
-        filename = self.data_file.get()
+        filename = self.data_file.get() 
         datafile = open(filename, 'w')
         json.dump(self.application.container, datafile)
         datafile.close()
         print('Data saved in %s' % filename)
     
     def save_as(self):
+        fname = self.data_file.get()
         data_folder = os.path.join(os.path.expanduser(self.application.cwd), 'data')
         filename = \
         tkinter.filedialog.asksaveasfilename(initialdir=data_folder)
 
         # FIXME: does not work if file already exists
         if U.is_valid_filename(filename):
+            if not filename.endswith('.cdx'):
+                filename += '.cdx'
             datafile = open(filename, 'w')
             json.dump(self.application.container, datafile)
             datafile.close()

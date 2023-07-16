@@ -10,6 +10,7 @@ We need doc
 import os
 import json
 import time
+import pathlib
 
 import tkinter
 import tkinter.filedialog
@@ -18,11 +19,9 @@ import tkinter.simpledialog
 
 # tk colors : https://www.tcl.tk/man/tcl/TkCmd/colors.html
 
-from pathlib import Path
 from datetime import datetime # datetime.now().strftime('%c')
 
 import utils as U
-
 from infoframe import InfoFrame
 from playercontrol import PlayerControl
 from applicationmenu import ApplicationMenu
@@ -33,9 +32,8 @@ __version__ = '0.3.0'
 __author__ = 'L. Pezard'
 __licence__ = 'GPL'
 
-
-# DEFAULT_CWD = '~'
-DEFAULT_CWD = "~/Documents/videos_synchrony/vidéosynchrony/"
+DEFAULT_CWD = '~'
+# DEFAULT_CWD = "~/Documents/videos_synchrony/vidéosynchrony/"
 
 class Application(tkinter.Tk):
     """
@@ -56,22 +54,30 @@ class Application(tkinter.Tk):
 
         self.container = {'history': [], # [(date, observer, comment), ...]
                           'media': '', # path for the media file
-                          'find_code': '',
+                          # lpcomment: en quoi est-ce utile ou necessaire?
+                          'find_code': '', 
                           'code': {}, # dictionary taken from the code file
                           'times': [], # sample times (in ms) taken from the player
                           'comments': [], # sample comments taken from codingframe
                           'data': {}} # data
         
-        self._context = "standard" # lpcomment: intialize to None?
+        self._context = "standard"
+        
+        initdir = os.path.expanduser(DEFAULT_CWD)
 
-# FIXME: add this when necessary
-        self.cwd = DEFAULT_CWD
-        tmp_cwd = tkinter.filedialog.askdirectory(title="Choose working directory",
-                                              initialdir=os.path.expanduser(self.cwd),
+        self.cwd = ''
+        while self.cwd == '':
+            self.cwd = tkinter.filedialog.askdirectory(title="Choose working directory",
+                                              initialdir=initdir,
                                               mustexist=True)
 # FIXME: check that subfolders 'media' and 'data' exist. If not create them
-        if tmp_cwd !=  '':
-            self.cwd = tmp_cwd
+        if not os.path.exists(os.path.join(self.cwd, 'media')):
+            pathlib.Path(os.path.join(self.cwd, 'media')).mkdir()
+        if not os.path.exists(os.path.join(self.cwd, 'data')):
+            pathlib.Path(os.path.join(self.cwd, 'data')).mkdir()
+
+#        if tmp_cwd !=  '':
+#            self.cwd = tmp_cwd
 
         print('cwd: ', self.cwd)
 

@@ -1,10 +1,13 @@
+import os
 import vlc
+import time
+import configparser
+
+from threading import Timer
+
 import tkinter
 import tkinter.messagebox
 from tkinter.colorchooser import askcolor
-
-import time
-from threading import Timer
 
 #vlc states : 
 #{0: 'NothingSpecial',
@@ -16,13 +19,14 @@ from threading import Timer
 # 6: 'Ended',
 # 7: 'Error'}
 
-# Graphical parameters
-bd = 2 # borderwidth
-ctrl_bg = 'magenta' #control background
-relief = 'groove'
-# relief in ['flat', 'raised', 'sunken', 'solid', 'ridge', 'groove']
+## Graphical parameters
+#bd = 2 # borderwidth
+#ctrl_bg = 'magenta' #control background
+#relief = 'groove'
+## relief in ['flat', 'raised', 'sunken', 'solid', 'ridge', 'groove']
 
 DTIME = 10000 # ms forward and back time period for continuous play
+CONFIG = 'config.ini'
 
 class PlayerControl(tkinter.LabelFrame):
     
@@ -31,6 +35,17 @@ class PlayerControl(tkinter.LabelFrame):
         Creates player control buttons
         """
         self.application = parent
+
+        config = configparser.ConfigParser()
+        if os.path.exists(os.path.join(self.application.cwd, CONFIG)):
+            config.read(os.path.join(self.application.cwd, CONFIG))
+        else:
+            config.read(CONFIG)
+
+        bd = config['playercontrol']['borderwidth']
+        ctrl_bg = config['playercontrol']['background']
+        relief = config['playercontrol']['relief']
+
 
         tkinter.LabelFrame.__init__(self, parent)
         self.configure(background=ctrl_bg, borderwidth=bd, padx=20, pady=20,

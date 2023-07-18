@@ -11,6 +11,8 @@ from datetime import datetime
 import utils as U
 import htmlreport as H
 
+VERSION = '0.9'
+
 ITEMSEP = ' |,|-|;|:|/'
 
 class NewCode(tkinter.LabelFrame):
@@ -167,6 +169,7 @@ class NewCode(tkinter.LabelFrame):
     def record_all(self):
 
         all_specs = {'date': datetime.now().strftime('%c')}
+        all_specs.update({'version': VERSION})
 
         pname = self.project_name.get()
         if pname == '':

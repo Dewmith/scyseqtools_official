@@ -28,7 +28,7 @@ from applicationmenu import ApplicationMenu
 from codingframe import FrameworkFrame
 from newcode import NewCode
 
-__version__ = '0.3.0'
+__version__ = '0.9'
 __author__ = 'L. Pezard'
 __licence__ = 'GPL'
 
@@ -59,7 +59,8 @@ class Application(tkinter.Tk):
                           'code': {}, # dictionary taken from the code file
                           'times': [], # sample times (in ms) taken from the player
                           'comments': [], # sample comments taken from codingframe
-                          'data': {}} # data
+                          'data': {},
+                          'version': __version__} # data
         
         self._context = "standard"
         

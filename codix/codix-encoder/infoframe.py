@@ -163,7 +163,7 @@ class InfoFrame(tkinter.LabelFrame):
         print(data)
         # lpcomment: we do this in newcode BUT user can change the name of the
         # code file and this is not written in the codefile
-        code = data['find_code']
+        code = data['code']['filename']
         media = data['media']
         if os.path.exists(media) and U.is_valid_media(media):
             self.media_file.set(media)

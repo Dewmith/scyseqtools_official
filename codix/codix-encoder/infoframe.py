@@ -38,15 +38,10 @@ class InfoFrame(tkinter.LabelFrame):
         self.directory_file = tkinter.StringVar()
         
 
-        # Repertoire
+        # Directory
         self.directory_label = tkinter.Label(self, text='Directory: ', background = info_bg)
         self.directory_label.grid(row =1, column =0)
-        self.directory_msg = tkinter.Label(self, text= 'Please load files', background=info_bg)
-
-
-        # directory_msg = tkinter.Entry(self, textvariable= self.directory_file,
-        #                                 state=tkinter.DISABLED,
-        #                                 width=filename_width)
+        self.directory_msg = tkinter.Label(self, text= 'Please load file', background=info_bg)
         self.directory_msg.grid(row=1, column = 1,)
 
         # Media File
@@ -183,30 +178,11 @@ class InfoFrame(tkinter.LabelFrame):
             self.code_file.set(self.set_name_of(code))
             self.application.make_coding_frame(code)
         else :
-            tkinter.messagebox.showinfo('Cannot load code file', " Code file doesn't exist or not in directory %s "  % code)
-
-        ## TODO : mettre les bons éléments dans le container
-        # self.application.data_file.set(fname)
-        # self.application.code_file.set('Retrieved from data file')
-
+            tkinter.messagebox.showinfo('Cannot load code file', " Code file doesn't exist or not in directory %s "  % code)     
 # lpcomment: everything at the good place in the container
         self.application.container.update(data)
         print(self.application.container)
         
-        # self.application.parse_code(self.container['code'])
-        # self.code_loaded = True
-        # print(self.application.container)
-
-        # # Quickly deals with non existent file
-        # # First: load media
-        # mfile = Path(self.application.container['media'])
-        # if mfile.is_file():
-        #     self.application.make_media_player(self.application.container['media'])
-        # else:
-        #     tkinter.messagebox.showinfo('Problem with media file', 
-        #                                 'Cannot find media file')
-        #    self.data_loaded = True
-        #    self.application.start_processing()
 
     def save_data(self):
         if self.data_file.get() == '':
@@ -252,3 +228,5 @@ class InfoFrame(tkinter.LabelFrame):
         self.code_label.configure(background=colortuple[1])
         self.media_label.configure(background=colortuple[1])
         self.data_label.configure(background=colortuple[1])
+        self.directory_label.configure(background=colortuple[1])
+        self.directory_msg.configure(background=colortuple[1])

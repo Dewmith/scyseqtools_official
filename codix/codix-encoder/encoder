@@ -169,7 +169,8 @@ class Application(tkinter.Tk):
         elif value == "resume":
             self._context = "processing"
             print('Context Resume session')
-            self.control.config_buttons({self.control.play_but : 'normal', 
+            #### leomodif : j'ai commenté le premier bouton et je l'ai réactivé quand on clique sur record
+            self.control.config_buttons({#self.control.play_but : 'normal', 
                                     self.control.back_but : 'disabled',
                                     self.control.forward_but : 'disabled', 
                                     self.control.mode_check : 'disabled',

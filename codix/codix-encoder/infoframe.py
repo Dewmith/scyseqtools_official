@@ -18,7 +18,7 @@ bd = 2 # borderwidth
 info_bg = 'yellow' # information background
 disabled_bg = 'light grey' # disabled background
 relief = 'groove'
-filename_width = 50
+filename_width = 30
 
 # relief in ['flat', 'raised', 'sunken', 'solid', 'ridge', 'groove']
 
@@ -30,7 +30,9 @@ class InfoFrame(tkinter.LabelFrame):
 
         self.configure(background=info_bg, borderwidth=bd, padx=20, pady=20, 
                        relief=relief, text='Information: ', font=(tkinter.font.BOLD,))
+
         self.grid(column=1, row=0)
+
         
         self.code_file = tkinter.StringVar()
         self.media_file = tkinter.StringVar()
@@ -43,7 +45,9 @@ class InfoFrame(tkinter.LabelFrame):
         self.directory_label.grid(row =1, column =0)
         self.directory_msg = tkinter.Label(self, text= 'Please load file', background=info_bg)
         self.directory_msg.grid(row=1, column = 1,)
+        
 
+        
         # Media File
         self.media_label = tkinter.Label(self, text='Media file: ', background=info_bg)
         self.media_label.grid(row=2, column=0, sticky=tkinter.W)
@@ -77,7 +81,7 @@ class InfoFrame(tkinter.LabelFrame):
         self.data_label.grid(row=4, column=0, sticky=tkinter.W)
         data_msg = tkinter.Entry(self, textvariable=self.data_file, 
                                        state=tkinter.DISABLED, 
-                                       width=filename_width, 
+                                       width=filename_width,
                                        disabledbackground=disabled_bg) 
         data_msg.grid(row=4, column=1, sticky=tkinter.W)
         self.data_load = tkinter.Button(self, text='Load',
@@ -85,8 +89,8 @@ class InfoFrame(tkinter.LabelFrame):
                                         command=self.ask_data)
         self.data_load.grid(row=4, column=2, sticky=tkinter.W)
         
-
         self.bind('<Button-3>', self.change_color)
+
 
     def ask_media(self):
         """Load media file

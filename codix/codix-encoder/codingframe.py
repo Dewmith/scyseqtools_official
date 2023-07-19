@@ -192,6 +192,8 @@ class FrameworkFrame(tkinter.LabelFrame):
                 return
             
             self.config_processing_buttons('disabled')
+            ######leomodif
+            self.application.control.play_but.config(state='normal')
 
             # Second passage to record the symbols
             if self.coding_length == self.application.times_length - 2:
@@ -354,7 +356,9 @@ class SpecificationFrame(tkinter.LabelFrame):
     def __init__(self, parent):
 
         tkinter.LabelFrame.__init__(self, parent)
+
         self.configure(text='Specifications', padx=10, pady=10)
+        
         # application = parent.application
         self.parent = parent
 

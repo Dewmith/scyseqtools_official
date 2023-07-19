@@ -48,9 +48,13 @@ class PlayerControl(tkinter.LabelFrame):
 
 
         tkinter.LabelFrame.__init__(self, parent)
+
         self.configure(background=ctrl_bg, borderwidth=bd, padx=20, pady=20,
-                       relief=relief, text='Control: ', font=('bold',))
+                                relief=relief, text='Control: ', font=('bold',))
+
+        
         self.grid(column=1, row=0)
+        
         
         self._mode = tkinter.StringVar(value='continuous')
         self._period = tkinter.StringVar(value='5')
@@ -60,9 +64,11 @@ class PlayerControl(tkinter.LabelFrame):
         self.back_but = tkinter.Button(self, text='Back', command=self.backward) 
         self.back_but.grid(row=1, column=0, sticky=tkinter.W)
 
+
         self.play_but = tkinter.Button(self, text='Play/Pause', command=self.playpause)
         self.play_but.grid(row=1, column=1, sticky=tkinter.W)
-        
+
+
         self.forward_but = tkinter.Button(self, text='Forward', command=self.forward)
         self.forward_but.grid(row=1, column=2)
        
@@ -124,6 +130,7 @@ class PlayerControl(tkinter.LabelFrame):
         self.player.play()
         tt.start()
         
+        
     
     def cont_play(self):
         print('Start continuous play at: ', self.time)
@@ -133,6 +140,9 @@ class PlayerControl(tkinter.LabelFrame):
     def dopause(self):
         self.player.set_pause(do_pause=1)
         self.state = "paused"
+        #### leomodif
+        if self.application.context == 'processing':
+            self.play_but.config(state='disabled')
 
 
     def playpause(self):

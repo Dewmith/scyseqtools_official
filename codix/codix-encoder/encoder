@@ -57,8 +57,9 @@ class Application(tkinter.Tk):
                           'code': {}, # dictionary taken from the code file
                           'times': [], # sample times (in ms) taken from the player
                           'comments': [], # sample comments taken from codingframe
-                          'data': {}} # data
-        
+                          'data': {}, # data
+                          'recorded_steps': {}} # recorded steps, useful for retrieve session
+                        
         self._context = "standard"
         
         initdir = os.path.expanduser(DEFAULT_CWD)

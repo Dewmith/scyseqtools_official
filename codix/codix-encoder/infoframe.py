@@ -206,6 +206,7 @@ class InfoFrame(tkinter.LabelFrame):
             tkinter.messagebox.showinfo('Cannot load code file', " Code file doesn't exist or not in directory %s "  % code)     
 # lpcomment: everything at the good place in the container
         self.application.container.update(data)
+        self.application.recorded_steps = data['recorded_steps']
         print(self.application.container)
         
 

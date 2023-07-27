@@ -184,6 +184,10 @@ class PlayerControl(tkinter.LabelFrame):
         else:
 
             raise ValueError('Unknown player mode' + self.mode)
+
+        self.application.context = 'not_recorded'
+
+        print("context :" , self.application.context)
      
     def backward(self):
         self.move('back')

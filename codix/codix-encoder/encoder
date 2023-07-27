@@ -253,6 +253,16 @@ class Application(tkinter.Tk):
             
             self.framework.display_codes(self.time_step)
 
+        elif value == 'not_recorded':
+            self.control.config_buttons({self.control.play_but : 'disabled', 
+                                    self.control.back_but : 'disabled',
+                                    self.control.forward_but : 'disabled', 
+                                    self.control.mode_check : 'disabled',
+                                    self.control.period_ent : 'disabled',
+                                    self.control.time_ent: 'disabled'})
+            self.framework.config_processing_buttons('normal')
+
+
             # self.info.save_data()
         elif value == 'standard':
             if self.state['code_loaded'] :

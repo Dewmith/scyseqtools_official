@@ -185,7 +185,8 @@ class PlayerControl(tkinter.LabelFrame):
 
             raise ValueError('Unknown player mode' + self.mode)
 
-        self.application.context = 'not_recorded'
+        if self.application.context == 'processing' :
+            self.application.context = 'not_recorded'
 
         print("context :" , self.application.context)
      

@@ -177,7 +177,7 @@ class FrameworkFrame(tkinter.LabelFrame):
 #            # cname = code_name
                 if time_step == 0 or \
                     (time_step == self.application.times_length-1 and \
-                    self.coding_length == self.application.times_length-2):
+                    len(self.application.recorded_steps) == self.application.times_length-2):
                     local_str = '-'
                 else:
                     idx = self.data[pan.name][cname][time_step-1]
@@ -186,7 +186,7 @@ class FrameworkFrame(tkinter.LabelFrame):
 
         if time_step == 0 or \
             (time_step == self.application.times_length-1 and \
-            self.coding_length == self.application.times_length-2):
+            len(self.application.recorded_steps) == self.application.times_length-2):
             comment = ''
         else :
             comment = self.coding_comments[time_step-1]
@@ -223,14 +223,15 @@ class FrameworkFrame(tkinter.LabelFrame):
             self.config_processing_buttons('disabled')
             
             # Second passage to record the symbols
-            if self.application.time_step <= self.coding_length :
+            if self.application.time_step <= len(self.application.recorded_steps) :
                 # Replace previous symbols / comments
                 self.set_data(method='replace')
             else :
                 # Append new symbol / comment
                 
                 self.set_data(method='append')
-            
+            if self.application.time_step not in self.application.recorded_steps :
+                self.application.recorded_steps.append(self.application.time_step)
 
 
 
@@ -277,17 +278,7 @@ class FrameworkFrame(tkinter.LabelFrame):
         elif method == "replace":
             self.coding_comments[time_step-1] = local_comment
 
-    @property
-    def coding_length(self):
-        if len(self.data) == 0 :
-            return 0
-        else :
-            panellist = self.coding_frame.panels
-            lseq = [self.data[site.name][code] for site in panellist 
-                                            for code in site.coding.keys()]
-            assert (all([len(s) == len(lseq[0]) for s in lseq]))
-
-            return len(lseq[0])
+    
 
     def change_color(self, event):
         colortuple = askcolor()

@@ -155,6 +155,7 @@ class InfoFrame(tkinter.LabelFrame):
             self.application.make_coding_frame(fname)
         else:
             tkinter.messagebox.showinfo('Cannot load code file', 'Cannot load %s file' % fname)
+            self.ask_code()
         self.code_load.config(state='disabled')
 
     def ask_data(self):
@@ -172,6 +173,7 @@ class InfoFrame(tkinter.LabelFrame):
             self.data_load.config(state='disabled')
         else:
             tkinter.messagebox.showinfo('Cannot load code file', " Media file doesn't exist or not in directory %s "  % fname)
+            self.ask_data()
 
     def set_name_of(self, st):# return the localisation of the file after the principal directory
         file_directory = self.directory_msg.cget('text')

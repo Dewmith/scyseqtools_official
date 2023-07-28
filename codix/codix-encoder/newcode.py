@@ -157,7 +157,8 @@ class NewCode(tkinter.LabelFrame):
             tkinter.messagebox.showinfo('Bad selection', 
                                         'You should give a site name.')
         else:
-            list_of_codes = [c for c in re.split("\(|,|'| |\)", list_of_codes) if c!='']
+            # list_of_codes = [c for c in re.split("\(|,|'| |\)", list_of_codes) if c!='']
+            list_of_codes = [c for c in re.split(ITEMSEP, list_of_codes) if c!='']
             list_of_selected_codes = [list_of_codes[i] for i in selected_codes]
             self.sites_container.update({site_name: list_of_selected_codes})
             site_rec = RecordedSite(self, 

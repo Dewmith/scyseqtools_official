@@ -1,94 +1,82 @@
-# -*- encoding:utf8 -*-
 """
-A Tk client for web services served by Ladon
+A Tk client for symbolic analysis
 """
+
+from methods import Method
+from symbolix import Symbolix
+
 import os
 import sys
-import json
-import tkinter
-import Pmw
-# import tkFileDialog
-import tkinter.filedialog
+import inspect
+import pathlib
 
-from ladon.clients.jsonwsp import JSONWSPClient
-from methods import Method
+import tkinter
+import tkinter.filedialog
+import tkinter.messagebox
+
+import Pmw
+
+sys.path.append('/home/zarpe/scikits-symbolic/symbolic')
+import iosymb as IO
 
 __version__ = '0.1'
 __author__ = 'L. Pezard'
 __licence__ = 'GPL'
 
-PLATFORM = sys.platform
-
-SERVICE = 'http://localhost:8081/symbolix/jsonwsp/description'
+# PLATFORM = sys.platform
+ANALYZERDIR = 'analyzer_files'
 
 class Application(tkinter.Tk):
+    """
+    The main frame for the analyzer application
+    """
 
     def __init__(self):
-	# Create and pack the NoteBook.
+#       Create and pack the NoteBook.
         tkinter.Tk.__init__(self)
         Pmw.initialise(self)
-        
-        self.service = tkinter.StringVar()
-        self.service.set(SERVICE)
 
         self.data = {} # data[file][...]
-        #self.appstate = {}
-
         self.ddir = tkinter.StringVar()
         self.ddir.set('')
-#        self.filelist = tkinter.StringVar()
-#        self.filelist.set('')
-        self.methods = []
-        self.filelist = []
-        self.selectedlist = []
-        # self.sitelist = tkinter.StringVar()
-        # self.codelist = tkinter.StringVar()
+        self.cwd = None
 
-        self.json_client = None
+        # self.filelist = []
+        filelist = []
+#        self.selectedlist = []
 
         self.notebook = Pmw.NoteBook(self)
         self.notebook.pack(fill = 'both', expand = 1, padx = 10, pady = 10)
-        
         # Add the "Configuration" page to the notebook.
         config_frame = self.notebook.add('Configuration')
         self.notebook.tab('Configuration').focus_set()
-        
-        service_lab = tkinter.Label(config_frame, text='Service: ')
-        service_ent = tkinter.Entry(config_frame, textvariable=self.service,
-                                    state=tkinter.NORMAL, 
-                                    disabledbackground='white',
-                                    width=50)
-        service_but = tkinter.Button(config_frame, text='Get methods',
-                                     command=self.get_methods)
-        service_lab.grid(column=0, row=0)
-        service_ent.grid(column=1, row=0)
-        service_but.grid(column=2, row=0)
 
         dir_lab = tkinter.Label(config_frame, text='Directory')
         dir_ent = tkinter.Entry(config_frame, textvariable=self.ddir,
-                                    state=tkinter.NORMAL, 
+                                    state=tkinter.NORMAL,
                                     disabledbackground='white',
                                     width=50)
-        dir_but = tkinter.Button(config_frame, text='Choose directory',
+        self.dir_but = tkinter.Button(config_frame, text='Choose directory',
                                      command=self.get_directory)
         dir_lab.grid(column=0, row=1)
         dir_ent.grid(column=1, row=1)
-        dir_but.grid(column=2, row=1)
-        
+        self.dir_but.grid(column=2, row=1)
+
         grp = Pmw.Group(config_frame, tag_text='Files')
         grp.grid(row=2, column=0, columnspan=3)
         self.available = Pmw.ScrolledListBox(grp.interior(),
-                                             items=self.filelist,
+                                             # items=self.filelist,
+                                             items=filelist,
                                              labelpos='nw',
                                              label_text='Available files')
         self.available.configure(listbox_selectmode='multiple',
                                  listbox_exportselection=False)
         self.available.grid(row=2, column=1)
-        file_but = tkinter.Button(grp.interior(), text="Select file(s)",
+        self.file_but = tkinter.Button(grp.interior(), text="Select file(s)",
                                   command=self.load_file)
-        file_but.grid(row=2, column=2)
+        self.file_but.grid(row=2, column=2)
 
-        self.selected = Pmw.ScrolledText(grp.interior(), 
+        self.selected = Pmw.ScrolledText(grp.interior(),
                                labelpos='nw',
                                label_text='Selected files')
         self.selected.grid(row=2, column=3)
@@ -98,22 +86,37 @@ class Application(tkinter.Tk):
 
         self.notebook.setnaturalsize()
 
-    def get_methods(self):
-        """
-        Ask the service about methods so build the rest of the interface
-        """
-        self.json_client = JSONWSPClient(self.service.get())
-        list_of_methods = self.json_client.list_methods()
-        self.methods = [Method(name, self) for name in list_of_methods]
+        available_meth = inspect.getmembers(Symbolix, predicate=inspect.isfunction)
+        self.methods = [Method(*m, self) for m in available_meth]
 
     def get_directory(self):
-        #outdir = tkFileDialog.askdirectory()
-        outdir = tkinter.filedialog.askdirectory()
+        """
+        returns the selected directory
+        """
+        initialdir = "/home/zarpe/Documents/tests_codix/data"
+
+        outdir = tkinter.filedialog.askdirectory(initialdir=initialdir)
         self.ddir.set(outdir)
-        self.filelist = os.listdir(self.ddir.get())
-        self.available.setlist(self.filelist)
+        wdy = os.path.split(outdir)[0]
+        cwd = os.path.join(wdy, ANALYZERDIR)
+        if not os.path.exists(cwd):
+            if tkinter.messagebox.askokcancel(\
+                       title='Create working directory?',
+                       message=f'Create {cwd}?'):
+                pathlib.Path(cwd).mkdir()
+#            else:
+#                cwd = wdy
+        tkinter.messagebox.showinfo(title='Current working directory',
+                       message=f'Files will be saved in folders of {cwd}')
+        self.cwd = cwd
+
+        #self.filelist = os.listdir(self.ddir.get())
+        # self.available.setlist(self.filelist)
+        filelist = os.listdir(self.ddir.get())
+        self.available.setlist(filelist)
         self.selected.setvalue('')
-        
+        self.dir_but.config(state='disabled')
+
     def load_file(self):
         """
         Loads the data file
@@ -126,19 +129,15 @@ class Application(tkinter.Tk):
         self.data = {} # clear previous data
         sites = []
         codes = {}
+
         for fname in file_tuple:
-            fid = open(os.path.join(self.ddir.get(), fname), 'r')
-            wholedata = json.load(fid)
-            fid.close()
-            candidate = wholedata['data']
-            candidate = dict((k.lower(), v) for k,v in candidate.items())
-            csites = list(candidate.keys())
-            ccodes = {}
-            for site in csites:
-                candidate[site] = dict((k.lower(), v) 
-                                  for k, v in candidate[site].items())
-                ccodes[site] = list(candidate[site].keys())
-            # Check that files are compatible
+
+            fid = os.path.join(self.ddir.get(), fname)
+            candidates = IO.read_codix(fid) # data only = True
+            csites = list(candidates.keys())
+            ccodes = {site: list(candidates[site].keys()) for site in csites}
+
+            # FIXME: Check that files are compatible
             if sites == [] or csites == sites:
                 sites = csites
                 if codes == {}:
@@ -151,21 +150,19 @@ class Application(tkinter.Tk):
                      for c1, c2 in zip(csites, sites)):
                     # FIXME: make a message box
                 raise ValueError('Incompatible sites')
-            self.data[fname] = candidate
+
+            self.data[fname] = candidates
 
         appstate = {'files': list(file_tuple), 'sites': sites, 'codes': codes,
                     'data': self.data}
-#         print appstate
-        # print appstate
-        # FIXME: if self.methods = [] messagebox
+
+        self.file_but.config(state='disabled')
+
         for method in self.methods:
             method.update_state(appstate)
 
-
 ######################################################################
 
-# Create demo in root window for testing.
 if __name__ == '__main__':
     application = Application()
     application.mainloop()
-

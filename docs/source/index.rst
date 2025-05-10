@@ -10,6 +10,12 @@ Add your content using ``reStructuredText`` syntax. See the
 `reStructuredText <https://www.sphinx-doc.org/en/master/usage/restructuredtext/index.html>`_
 documentation for details.
 
+.. figure:: illustrations/flowchart.png
+   :align: center
+   :width: 80%
+
+   Flowchart of the encoder
+
 
 .. toctree::
    :maxdepth: 2

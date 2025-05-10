@@ -3,3 +3,4 @@ doc/.~*#
 gpt*
 _Trash
 build/
+*.py[cod]

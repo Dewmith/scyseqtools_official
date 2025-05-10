@@ -12,17 +12,42 @@ license = {text = "MIT"}
 
 # On dépend de la librairie locale (à modifier selon ton chemin exact)
 dependencies = [
-  "ma-librairie @ ../ma-librairie",  # chemin relatif vers ta lib locale
+  "scyseq @ file:///../../scyseq",  # chemin relatif vers ta lib locale
+  "python-vlc"
 ]
 
+#[tool.hatch.dependencies]
+## Dépendance vers la librairie locale (installée en mode editable)
+#"scyseq" = { path = "../../scyseq", develop = true }
+
+[project.optional-dependencies]
+dev = ["pytest"]
+docs = ["sphinx", "sphinx-gallery", "nbsphinx",
+"sphinxcontrib-bibtex", "ipykernel"]
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/analyser", "src/encoder"]
+
 [tool.hatch.envs.default]
-# Ici tu peux préciser des options pour ton env (comme pytest, etc.)
-dependencies = [
-  "pytest", "python-vlc"
-]
+features = ["dev", "docs"]
+
+#[tool.hatch.build.targets.wheel]
+#packages = ["src/encoder", "src/analyser"]
+
 
 [tool.hatch.metadata]
 allow-direct-references = true
+#name = "mon-appli"
+#version = "0.1.0"
 
-[tool.hatch.build.targets.wheel]
-packages = ["src/encoder", "src/analyser"]
+
+#[tool.hatch.envs]
+## Configuration de l'environnement de développement (facultatif)
+#default = { dependencies = ["malib"] }
+#
+#[tool.hatch.scripts]
+## Si tu as des scripts que l'utilisateur peut lancer directement avec `hatch run`
+#start-appli1 = "src.appli1.main:main"  # Exemple, change selon ta structure
+#start-appli2 = "src.appli2.main:main"  # Exemple, change selon ta structure
+
+

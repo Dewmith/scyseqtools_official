@@ -21,3 +21,6 @@ documentation for details.
    :maxdepth: 2
    :caption: Contents:
 
+   userguide
+   devguide
+   todo.md

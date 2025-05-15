@@ -5,3 +5,4 @@ _Trash
 build/
 *.py[cod]
 cwdfile.ini
+.DS_Store

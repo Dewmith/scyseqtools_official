@@ -20,7 +20,7 @@ documentation for details.
 .. mermaid::
 
    sequenceDiagram
-      participant Alice
+      participant Alic
       participant Bob
       Alice->John: Hello John, how are you?
       loop Healthcheck
@@ -37,6 +37,7 @@ documentation for details.
    :caption: Contents:
 
    userguide
+   flowcharts
    devguide
    codedoc
    todo

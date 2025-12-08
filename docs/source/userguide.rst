@@ -121,4 +121,84 @@ Probabilités de Transitions
 6. Cliquer sur **Launch** pour démarrer le calcul.
 7. Choisir le dossier où les résultats seront enregistrés.
 
+Test 2 harmonisé 
+Guide d’utilisation Analix
+===================
 
+.. contents::
+   :depth: 2
+   :local:
+   :backlinks: none
+
+---
+
+Statistics
+==========
+
+Analysez vos données de manière simple et efficace.
+
+.. note::
+   Avant de commencer, assurez-vous que vos dossiers sont correctement organisés.  
+   Si vous avez plusieurs temps de mesure, créez un dossier pour chaque temps.
+
+Étapes
+------
+
+1. **Organisez vos dossiers**.  
+2. Cliquez sur **Choose directory** 📂 pour sélectionner le dossier contenant vos données.
+3. Les variables mesurées ou codées apparaissent automatiquement dans la fenêtre.
+4. Sélectionnez les **variables d’intérêt** 🎯.
+5. Cliquez sur **Launch** ▶️ pour lancer l’analyse.
+6. Choisissez le dossier où les **résultats seront enregistrés** 💾.
+
+---
+
+Mutual Information
+==================
+
+Calculez les relations entre vos variables grâce à l'information mutuelle.
+
+.. tip::
+   Une bonne préparation des dossiers vous fera gagner du temps et évitera les erreurs.
+
+Étapes
+------
+
+1. **Préparez vos dossiers**.  
+2. Cliquez sur **Choose directory** 📂 pour sélectionner le dossier de données.
+3. Les variables mesurées ou codées apparaissent dans la fenêtre.
+4. Sélectionnez les **variables d’intérêt** 🎯.
+5. Cliquez sur **Launch** ▶️ pour démarrer le calcul.
+6. Choisissez le dossier pour enregistrer les **résultats** 💾.
+
+---
+
+Probabilités de transitions
+===========================
+
+Calculez les probabilités qu’un état évolue vers un autre.
+
+.. important::
+   Vérifiez attentivement l’intervalle de temps pour lequel vous souhaitez calculer les probabilités.
+
+Étapes
+------
+
+1. **Organisez vos dossiers** (un dossier par temps de mesure si nécessaire).
+2. Cliquez sur **Choose directory** 📂 pour sélectionner vos données.
+3. Les variables mesurées ou codées apparaissent dans la fenêtre.
+4. Sélectionnez les **variables d’intérêt** 🎯.
+5. Définissez l’**intervalle de temps** (en secondes) ⏱️.
+6. Cliquez sur **Launch** ▶️ pour démarrer le calcul.
+7. Choisissez le dossier où les résultats seront **enregistrés** 💾.
+
+---
+
+Conseils pratiques
+------------------
+
+.. tip::
+   - Toujours vérifier l’organisation des dossiers avant de lancer l’analyse.
+   - Préparer les noms de fichiers de manière cohérente pour faciliter la lecture des résultats.
+   - Sauvegarder régulièrement vos données originales.
+   

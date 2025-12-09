@@ -142,10 +142,8 @@ Steps
 7. Choose the folder where the **results wiil be saved** 💾.
 
 ---
-
 Analysis Workflow
 =================
-
 .. graphviz::
 
    digraph workflow {
@@ -172,7 +170,6 @@ Analysis Workflow
    }
 
 Pratical Tips
-
 ------------------
 - Always verify your folder organization before running an analysis.
 - Use consistent file names to make results easier to read.

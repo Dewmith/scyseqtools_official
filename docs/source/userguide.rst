@@ -146,6 +146,6 @@ Steps
 Pratical Tips
 
 ------------------
-Always verify your folder organization before running an analysis.
-Use consistent file names to make results easier to read.
-Regularly back up your original data.
+- Always verify your folder organization before running an analysis.
+- Use consistent file names to make results easier to read.
+- Regularly back up your original data.

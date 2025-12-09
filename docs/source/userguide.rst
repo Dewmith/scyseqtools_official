@@ -77,128 +77,75 @@ Launch codix encoder using the icon? or the command
 Analyser guide
 --------------
 
-Editing test from Elisa
-
-New test for other pc
-
-Launch codix analyser using the icon? or the command
-
 .. code-block:: bash
 
    codix-analyser
 
-   Statistics
-==========
-
-1. Organiser vos dossiers en amont.  
-   - Si vous avez plusieurs temps de mesure, créez les dossiers correspondants avant de commencer.
-2. Cliquer sur **Choose directory** pour sélectionner le dossier contenant les données à analyser.
-3. Dans chaque fenêtre, les variables mesurées ou codées apparaissent.
-4. Sélectionner les variables d’intérêt.
-5. Cliquer sur **Launch** pour lancer l’analyse.
-6. Choisir le dossier où les résultats calculés seront enregistrés.
-
-Mutual Information
+Window Statistics
 =================
 
-1. Organiser vos dossiers en amont.  
-   - Si plusieurs temps de mesure sont présents, créez les dossiers correspondants.
-2. Cliquer sur **Choose directory** pour sélectionner le dossier contenant les données à analyser.
-3. Dans chaque fenêtre, les variables mesurées ou codées apparaissent.
-4. Sélectionner les variables d’intérêt.
-5. Cliquer sur **Launch** pour lancer le calcul.
-6. Choisir le dossier de destination pour les résultats.
-
-Probabilités de Transitions
-===========================
-
-1. Organiser vos dossiers en amont.  
-   - Créez les dossiers correspondants si plusieurs temps de mesure sont présents.
-2. Cliquer sur **Choose directory** pour sélectionner le dossier contenant les données.
-3. Dans chaque fenêtre, les variables mesurées ou codées apparaissent.
-4. Sélectionner les variables d’intérêt.
-5. Définir l’intervalle de temps (en secondes) pour lequel les probabilités seront calculées.
-6. Cliquer sur **Launch** pour démarrer le calcul.
-7. Choisir le dossier où les résultats seront enregistrés.
-
-Test 2 harmonisé 
-Guide d’utilisation Analix
-===================
-
-.. contents::
-   :depth: 2
-   :local:
-   :backlinks: none
-
----
-
-Statistics
-==========
-
-Analysez vos données de manière simple et efficace.
+Analyze your data simply and efficiently.
 
 .. note::
-   Avant de commencer, assurez-vous que vos dossiers sont correctement organisés.  
-   Si vous avez plusieurs temps de mesure, créez un dossier pour chaque temps.
+Before you begin, make sure your folders are properly organized.
+If you have multiple measurement times, create one folder per time point.
 
-Étapes
-------
+Steps
+-----
 
-1. **Organisez vos dossiers**.  
-2. Cliquez sur **Choose directory** 📂 pour sélectionner le dossier contenant vos données.
-3. Les variables mesurées ou codées apparaissent automatiquement dans la fenêtre.
-4. Sélectionnez les **variables d’intérêt** 🎯.
-5. Cliquez sur **Launch** ▶️ pour lancer l’analyse.
-6. Choisissez le dossier où les **résultats seront enregistrés** 💾.
+1. **Organize your folders**.  
+2. Click **Choose directory** 📂 to select the folder containing your data.
+3. The measured or coded variables will automatically appear in the window.
+4. Select the **variables of interest** 🎯.
+5. Click **Launch** ▶️ to run the analysis.
+6. Choose the folder where the **results will be saved** 💾.
 
 ---
 
-Mutual Information
+Window Mutual Information
 ==================
 
-Calculez les relations entre vos variables grâce à l'information mutuelle.
+Compute relationships between your variables using mutual information.
 
-.. tip::
-   Une bonne préparation des dossiers vous fera gagner du temps et évitera les erreurs.
+.. Advice::
+   Good folder preparation will save you time and help prevent errors.
 
-Étapes
-------
+Steps
+-----
 
-1. **Préparez vos dossiers**.  
-2. Cliquez sur **Choose directory** 📂 pour sélectionner le dossier de données.
-3. Les variables mesurées ou codées apparaissent dans la fenêtre.
-4. Sélectionnez les **variables d’intérêt** 🎯.
-5. Cliquez sur **Launch** ▶️ pour démarrer le calcul.
-6. Choisissez le dossier pour enregistrer les **résultats** 💾.
+1. **Prepare your folders**.  
+2. Click **Choose directory** 📂 to select the data folder.
+3. The measured or coded variables will appear in the window.
+4. Select the **variables of interest** 🎯.
+5. Click **Launch** ▶️ to start the computation.
+6. Choose the folder where the **results will be saved** 💾.
 
 ---
 
-Probabilités de transitions
-===========================
+Window Transition Probabilities
+========================
 
-Calculez les probabilités qu’un état évolue vers un autre.
+Compute the probabilities that one state transitions into another.
 
 .. important::
-   Vérifiez attentivement l’intervalle de temps pour lequel vous souhaitez calculer les probabilités.
+Check the time interval for which you want to calculate the probabilities.
 
-Étapes
-------
+Steps
+-----
 
-1. **Organisez vos dossiers** (un dossier par temps de mesure si nécessaire).
-2. Cliquez sur **Choose directory** 📂 pour sélectionner vos données.
-3. Les variables mesurées ou codées apparaissent dans la fenêtre.
-4. Sélectionnez les **variables d’intérêt** 🎯.
-5. Définissez l’**intervalle de temps** (en secondes) ⏱️.
-6. Cliquez sur **Launch** ▶️ pour démarrer le calcul.
-7. Choisissez le dossier où les résultats seront **enregistrés** 💾.
+1. **Organize your folders** (one folder per measurement time if needed).
+2. Click **Choose directory** 📂 to select your data.
+3. The measured or coded variables will appear in the window.
+4. Select the **variables of interest** 🎯.
+5. Set the **time interval** (in seconds) ⏱️.
+6. Click **Launch** ▶️ to start the computation.
+7. Choose the folder where the **results wiil be saved** 💾.
 
 ---
 
-Conseils pratiques
-------------------
+Pratical Tips
 
-.. tip::
-   - Toujours vérifier l’organisation des dossiers avant de lancer l’analyse.
-   - Préparer les noms de fichiers de manière cohérente pour faciliter la lecture des résultats.
-   - Sauvegarder régulièrement vos données originales.
-   
+------------------
+Always verify your folder organization before running an analysis.
+Use consistent file names to make results easier to read.
+Regularly back up your original data.

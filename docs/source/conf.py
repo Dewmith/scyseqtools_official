@@ -16,9 +16,12 @@ release = '0.1'
 
 import sys
 sys.path.append('../src/')
+#sys.path.append('../../src/encoder/')
+#sys.path.append('../../src/analyzer/')
 print(sys.path)
 
 extensions = ["myst_parser", # allow .md files
+             # "sphinxmermaid",
               "sphinxcontrib.mermaid", 
               "sphinx.ext.autodoc",
               'sphinx.ext.todo'
@@ -30,6 +33,10 @@ exclude_patterns = []
 
 todo_include_todos = True
 
+import os
+
+mermaid_cmd = os.path.expanduser("~/mermaid-cli/node_modules/.bin/mmdc")
+mermaid_output_format = "png"
 
 # -- Options for HTML output -------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#options-for-html-output

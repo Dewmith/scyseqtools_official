@@ -92,7 +92,7 @@ Launching Codix
 Creating a Code File
 ~~~~~~~~~~~~~~~~~~~~
 
-• In the menu bar: **Actions → Create a new code**.
+• In the menu bar: **Actions → Create a new code**
 ..
 • In **Name**, enter the name of the code file.
 ..
@@ -108,6 +108,20 @@ Creating a Code File
 • Once the code file is complete, click **Save all specifications and quit**.
 ..
 • Save the code file in the desired folder.
+
+Starting a New Coding Session
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+• In the menu bar: **Actions → Start a new session**  
+..
+• **Load the video:**  
+   * Click **Load** in the **Media file** section.
+   * In the corresponding folder, select the video to code.
+..
+• **Load the code file:**  
+   * Click **Load** in the **Code file** section.
+   * In **File type**, select **Code file (*.cod)** or **New code (*.jod)** depending on the code.
+   * In the corresponding folder, select the desired code file.
 
 Analyser guide
 --------------

@@ -75,53 +75,116 @@ Launch codix encoder using the icon? or the command
             * Define media (and save media in correct place **TODO**)
 
 
-Launching Codix
+Launch Codix
 ^^^^^^^^^^^^^^
-
+..
 • Open the Terminal.
-• In the terminal, type:
+• Type the following command:
 
 .. code-block:: bash
 
    ./codix
 
-• A small window opens (**Choose working directory**):
-   * Check that the displayed directory corresponds to the desired one.
-   * Click **OK**.  
+• A small window opens: Check that the displayed directory matches the desired folder.
+• Click **OK**.  
 
-Creating a Code File
+Create a code file
 ~~~~~~~~~~~~~~~~~~~~
-
+..
+..
 • In the menu bar: **Actions → Create a new code**
 ..
-• In **Name**, enter the name of the code file.
+• Fill in the following fields:
+   * *Name*: name of the code file.
+   * *Description*: description of the code file.
+   * *Code name*: name of the code (e.g., *movement*).
+   * *List of items*: items associated with the code (e.g., *small*, *large*) 
+      - Click **Record**.
+   * *Recording site*: name of the site (e.g., *mother*).
+      - Select the codes to assign to the site.
+      - Click **Record**.
 ..
-• In **Description**, enter a description of the code file.
+• Repeat the operation for as many codes, items, and recording sites as needed.
 ..
-• In **Code name**, enter the name of the code (example: *movement*).
-..
-• In **List of items**, enter the items associated with the code (example: *small*, *large*) and click **Record**.
-..
-• In **Recording site**, enter the name of the site (example: *mother*). 
-   - Select the codes to assign to the site and click **Record**.
+• Once the code file is complete: 
+   * Click **Save all specifications and quit**.
+   * Save the code file in the desired folder.
 
-• Once the code file is complete, click **Save all specifications and quit**.
-..
-• Save the code file in the desired folder.
-
-Starting a New Coding Session
+Start a new coding session
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
+..
 • In the menu bar: **Actions → Start a new session**  
 ..
-• **Load the video:**  
-   - Click **Load** in the **Media file** section.
+• Load the video:  
+
+   - Click **Load** in the *Media file* section.
+
    - In the corresponding folder, select the video to code.
 ..
-• **Load the code file:**  
-   - Click **Load** in the **Code file** section.
-   - In **File type**, select **Code file (*.cod)** or **New code (*.jod)** depending on the code.
+• Load the code file:  
+
+   - Click **Load** in the *Code file* section.
+ 
+
+   - In *File type*, select **Code file (*.cod)** or **New code (*.jod)** depending on the code.
+ 
+
    - In the corresponding folder, select the desired code file.
+
+• The Codix window opens. Click **Play/Pause** to start the video.
+..  
+• Click **Play/Pause** again to stop the video as soon as coding can begin  
+  (e.g., once the participants start speaking).
+..
+   
+   ⚙️ Settings: 
+
+      - In the field *By period of (..) sec.*, enter the coding interval (e.g., **2 sec** → the video will stop every 2 seconds).  
+  
+      - Tick the box to activate the interval.  
+  
+      - Click **Start processing**.  
+  
+      - Enter the coder’s first name.  
+  
+      - Restart the video using **Play/Pause**.
+..
+   
+   🧩 Coding procedure: 
+
+      - Code the first video segment.  
+      - Click **Record**.  
+      - A window opens: name the file.  
+      - Repeat the following cycle: **Play/Pause → coding → Record**.
+..
+
+   ✏️ Edit previous codes:
+
+      - Click **Back** as many times as needed to reach the desired segment.  
+      - Click **Play/Pause** to restart the video.  
+      - Correct the items if necessary.
+      - Click **Record**.
+..
+   
+   🔚 Exit session:  
+
+      - In the menu bar: **Actions → Quit**.
+..
+   ..
+Resume an unfinished coding session
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+..
+After launching Codix:  
+
+   - In the menu bar: **Actions → Retrieve a session**.  
+
+   - Click **Load** in *Data file*.  
+
+   - In the corresponding folder, select the desired coding file: the video and coding window will open.  
+
+   - Click **Start processing**.
+
+   - Enter the first name of the coder who started coding the video: coding will resume from where it was left off.
 
 Analyser guide
 --------------

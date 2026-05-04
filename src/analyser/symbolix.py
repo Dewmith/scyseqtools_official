@@ -199,6 +199,8 @@ class Symbolix():
         @param step: time step ahead to compute the influence.
         @rtype: Table with transition probabilities
         """
+# FIXME - FIXME - FIXME - 
+# FIXME: the direction of the influence is WRONG!!!
 #        # assume that site, code and alphabet are the same for all the sequences
         filename = '_'.join([lod[0]['sitename'], lod[0]['codename'], \
                              f'transition{step}']) + TABLE_EXT
@@ -226,6 +228,8 @@ class Symbolix():
         @param step: time step ahead to compute the influence.
         @rtype: Table with influence probabilities from first to second.
         """
+# FIXME - FIXME - FIXME - 
+# FIXME: the direction of the influence is WRONG!!!
         # assume that site, code and alphabet are the same for all the sequences
         filename = '_'.join([lod1[0]['sitename'], lod1[0]['codename'], \
                              lod2[0]['sitename'], lod2[0]['codename'], \

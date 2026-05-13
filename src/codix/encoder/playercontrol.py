@@ -2,15 +2,15 @@
 Module that controls VLC player for codix encoder
 """
 
-import os
 import time
-import configparser
 
 from threading import Timer
 
 import tkinter
 import tkinter.messagebox
 from tkinter.colorchooser import askcolor
+
+from codix.encoder.config import load_encoder_config
 
 import vlc
 
@@ -31,7 +31,8 @@ import vlc
 ## relief in ['flat', 'raised', 'sunken', 'solid', 'ridge', 'groove']
 
 DTIME = 10000 # ms forward and back time period for continuous play
-CONFIG = 'config.ini'
+
+
 
 class PlayerControl(tkinter.LabelFrame):
     """
@@ -42,30 +43,23 @@ class PlayerControl(tkinter.LabelFrame):
     - a checkbox for setting regular playing
     """
 
-    def __init__(self, parent, file_name):
+    def __init__(self, parent, file_name, application=None):
         """
         Creates player control buttons
         """
-        self.application = parent
+        self.application = application or parent
 
-        config = configparser.ConfigParser()
-        if os.path.exists(os.path.join(self.application.cwd, CONFIG)):
-            config.read(os.path.join(self.application.cwd, CONFIG))
-        else:
-            config.read(CONFIG)
+        config = load_encoder_config(
+            self.application.cwd, required_sections=("playercontrol",)
+        )
 
-        border_width = config['playercontrol']['borderwidth']
+        border_width = config['playercontrol'].getint('borderwidth')
         ctrl_bg = config['playercontrol']['background']
         relief = config['playercontrol']['relief']
-        self.dark_bg = config['playercontrol']['dark_bg']
-        self.light_bg = config['playercontrol']['light_bg']
-
         tkinter.LabelFrame.__init__(self, parent)
 
         self.configure(background=ctrl_bg, borderwidth=border_width, padx=20, pady=20,
                                 relief=relief, text='Control: ', font=('bold',))
-
-        self.grid(column=1, row=0)
 
         self._mode = tkinter.StringVar(value='continuous')
         self._period = tkinter.StringVar(value='5')
@@ -134,6 +128,7 @@ class PlayerControl(tkinter.LabelFrame):
         self.elements = [self, self.period_lab, self.time_lab, self.mode_check, self.unit_lab]
 
         self.times = []
+
 
     def step_play(self, time_interval):
         """

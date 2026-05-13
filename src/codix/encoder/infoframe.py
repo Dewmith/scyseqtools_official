@@ -1,6 +1,5 @@
 import os
 import json
-import configparser
 
 # from pathlib import Path # Only used once in a comment...
 # import os.path as opath
@@ -11,6 +10,7 @@ import tkinter.filedialog
 import tkinter.messagebox
 from tkinter.colorchooser import askcolor
 
+from codix.encoder.config import load_encoder_config
 import codix.encoder.utils as U
 
 #### leomodif : on met ces variables dans config.ini directement
@@ -20,8 +20,9 @@ import codix.encoder.utils as U
 #disabled_bg = 'light grey' # disabled background
 #relief = 'groove'
 #filename_width = 30
-CONFIG = 'config.ini'
 # relief in ['flat', 'raised', 'sunken', 'solid', 'ridge', 'groove']
+
+
 
 class InfoFrame(tkinter.LabelFrame):
 
@@ -29,24 +30,19 @@ class InfoFrame(tkinter.LabelFrame):
         tkinter.LabelFrame.__init__(self, parent)
         self.application = parent
 
-        config = configparser.ConfigParser()
-        if os.path.exists(os.path.join(self.application.cwd, CONFIG)):
-            config.read(os.path.join(self.application.cwd, CONFIG))
-        else:
-            config.read(CONFIG)
+        config = load_encoder_config(
+            self.application.cwd, required_sections=("infoframe",)
+        )
 
-        bd = config['infoframe']['borderwidth']
+        bd = config['infoframe'].getint('borderwidth')
         info_bg = config['infoframe']['background']
         relief = config['infoframe']['relief']
         disabled_bg = config['infoframe']['disabled_bg']
-        filename_width = config['infoframe']['filename_width']
-        self.dark_bg = config['infoframe']['dark_bg']
-        self.light_bg = config['infoframe']['light_bg']
-
+        filename_width = config['infoframe'].getint('filename_width')
         self.configure(background=info_bg, borderwidth=bd, padx=20, pady=20,
                        relief=relief, text='Information: ', font=(tkinter.font.BOLD,))
 
-        self.grid(column=1, row=0)
+        self.grid_columnconfigure(1, weight=1)
 
         self.code_file = tkinter.StringVar()
         self.media_file = tkinter.StringVar()
@@ -55,9 +51,10 @@ class InfoFrame(tkinter.LabelFrame):
 
         # Directory
         self.directory_label = tkinter.Label(self, text='Directory: ', background = info_bg)
-        self.directory_label.grid(row =1, column =0)
+        self.directory_label.grid(row=1, column=0, sticky=tkinter.W)
         self.directory_msg = tkinter.Label(self, text= 'Please load file', background=info_bg)
-        self.directory_msg.grid(row=1, column = 1,)
+        self.directory_msg.configure(anchor=tkinter.W)
+        self.directory_msg.grid(row=1, column=1, sticky=U.sticky_all)
 
         # Media File
         self.media_label = tkinter.Label(self, text='Media file: ', background=info_bg)
@@ -66,7 +63,7 @@ class InfoFrame(tkinter.LabelFrame):
                                         state=tkinter.DISABLED,
                                         width=filename_width,
                                         disabledbackground=disabled_bg)
-        media_msg.grid(row=2, column=1, sticky=tkinter.W)
+        media_msg.grid(row=2, column=1, sticky=U.sticky_all)
         self.media_load = tkinter.Button(self, text='Load', state=states[0],
                                          command=self.ask_media)
         self.media_load.grid(row=2, column=2, sticky=tkinter.W)
@@ -80,7 +77,7 @@ class InfoFrame(tkinter.LabelFrame):
                                        state=tkinter.DISABLED,
                                        width=filename_width,
                                        disabledbackground=disabled_bg)
-        code_msg.grid(row=3, column=1, sticky=tkinter.W)
+        code_msg.grid(row=3, column=1, sticky=U.sticky_all)
         self.code_load = tkinter.Button(self, text='Load',
                                         state=states[1],
                                         command=self.ask_code)
@@ -94,7 +91,7 @@ class InfoFrame(tkinter.LabelFrame):
                                        state=tkinter.DISABLED,
                                        width=filename_width,
                                        disabledbackground=disabled_bg)
-        data_msg.grid(row=4, column=1, sticky=tkinter.W)
+        data_msg.grid(row=4, column=1, sticky=U.sticky_all)
         self.data_load = tkinter.Button(self, text='Load',
                                         state=states[2],
                                         command=self.ask_data)
@@ -199,14 +196,6 @@ class InfoFrame(tkinter.LabelFrame):
             tkinter.messagebox.showinfo('Cannot load code file', " Code file doesn't exist or not in directory %s "  % code)
 # lpcomment: everything at the good place in the container
         self.application.container.update(data)
-
-        #### LEOMODIF ici on a 2 choix, soit on met le recorded_step dans le container pour retrieve plus facilement mais on en a pas nécéssairement besoin
-            # soit on crée une liste de la longueur des temps déja visionnés (donc enregistrés) pour éviter de surcharger le container
-
-        #self.application.recorded_steps = data['recorded_steps']
-#        list = []
-#        for i in range(1,len(data['times'])):
-#            list.append(i)
         self.application.recorded_steps = set(range(1, len(data['times'])))
         print(self.application.recorded_steps)
         print(self.application.container)

@@ -25,15 +25,12 @@ from codix.encoder.infoframe import InfoFrame
 from codix.encoder.playercontrol import PlayerControl
 from codix.encoder.applicationmenu import ApplicationMenu
 from codix.encoder.codingframe import FrameworkFrame
+from codix.encoder.config import load_encoder_config
 from codix.encoder.newcode import NewCode
 
 __version__ = '0.9'
 __author__ = 'L. Pezard'
 __licence__ = 'GPL'
-
-CWD_FILE = 'cwdfile.ini'
-DEFAULT_CWD = '~'
-# DEFAULT_CWD = "~/Documents/videos_synchrony/vidéosynchrony/"
 
 class Application(tkinter.Tk):
     """
@@ -63,10 +60,10 @@ class Application(tkinter.Tk):
         self._context = "standard"
         self.cwd = self.__set_cwd()
         print('Current working directory set to :', self.cwd)
-        self.interface = True
         # FIXME: this is related to coding framework.
         # self.recorded_steps = []
         self.recorded_steps = set()
+        self.coding_workspace = None
 
 # Working directory
 
@@ -78,68 +75,35 @@ class Application(tkinter.Tk):
         Also make sure that the folders "media" and "data" are present. Create
         them if they are lacking.
         """
-        if os.path.exists(CWD_FILE):
-            with open(CWD_FILE, 'r', encoding='utf-8') as cwdfile:
+        config = load_encoder_config(required_sections=("application",))
+        cwd_filename = config["application"]["cwd_file"]
+        default_cwd = config["application"]["default_cwd"]
+
+        if os.path.exists(cwd_filename):
+            with open(cwd_filename, 'r', encoding='utf-8') as cwdfile:
                 initdir = os.path.expanduser(cwdfile.readline())
                 # print('initdir from file: ', initdir)
         else:
-            initdir = os.path.expanduser(DEFAULT_CWD)
+            initdir = os.path.expanduser(default_cwd)
             # print('initdir default: ', initdir)
 
         cwd = ''
         while cwd == '':
             cwd = filedialog.askdirectory(title="Choose working directory",
                                           initialdir=initdir, mustexist=True)
-        with open(CWD_FILE, 'w', encoding='utf-8') as cwdfile:
+        with open(cwd_filename, 'w', encoding='utf-8') as cwdfile:
             cwdfile.write(cwd)
 
-        # check that subfolders 'media' and 'data' exist. If not create them
-        if not os.path.exists(os.path.join(cwd, 'media')):
-            pathlib.Path(os.path.join(cwd, 'media')).mkdir()
-        if not os.path.exists(os.path.join(cwd, 'data')):
-            pathlib.Path(os.path.join(cwd, 'data')).mkdir()
+        local_config = load_encoder_config(cwd, required_sections=("application",))
+        required_subfolders = [
+            folder.strip()
+            for folder in local_config["application"]["required_subfolders"].split(",")
+            if folder.strip()
+        ]
+        for folder in required_subfolders:
+            pathlib.Path(os.path.join(cwd, folder)).mkdir(exist_ok=True)
 
         return cwd
-
-# Interface fonction
-
-    def change_interface(self):
-        """
-        Change the interface looking.
-        """
-        if self.interface :
-            self.change_color(['light_to_dark',self.control.elements,
-                                self.framework.elements, self.info.elements])
-            self.interface = False
-            self.framework.interface_button.config(text='Light mode')
-        else :
-            self.change_color(['dark_to_light', self.control.elements,
-                                self.framework.elements, self.info.elements])
-            self.framework.interface_button.config(text='Dark mode')
-            self.interface = True
-
-    def change_color(self, inlist):
-        """
-        Change color theme
-        """
-        if inlist[0] == 'light_to_dark':
-            for zone in inlist[1:] :
-                for elem in zone :
-                    if elem == self.control.elements :
-                        elem.config(background = self.control.dark_bg)
-                    if elem == self.info.elements :
-                        elem.config(background = self.info.dark_bg)
-                    else :
-                        elem.config(background = self.framework.dark_bg)
-        else :
-            for zone in inlist[1:] :
-                for elem in zone :
-                    if elem == self.control.elements :
-                        elem.config(background = self.control.light_bg)
-                    if elem == self.info.elements :
-                        elem.config(background = self.info.light_bg)
-                    else:
-                        elem.config(background = self.framework.light_bg)
 
 # Menu related functions
 #-----------------------
@@ -158,7 +122,8 @@ class Application(tkinter.Tk):
                               states=(tkinter.NORMAL,    # load media
                                       tkinter.DISABLED,  # load code
                                       tkinter.DISABLED)) # load data
-        self.info.grid(row=1, column=1, sticky=U.sticky_all)
+        self.info.grid(row=1, column=0, columnspan=2, sticky=U.sticky_all)
+        self.__make_coding_workspace()
         self.menu.disable_actions()
 
     def retrieve_session(self):
@@ -168,7 +133,8 @@ class Application(tkinter.Tk):
                               states=(tkinter.DISABLED, # load code
                                       tkinter.DISABLED, # load media
                                       tkinter.NORMAL))  # load data
-        self.info.grid(row=1, column=1, sticky=U.sticky_all)
+        self.info.grid(row=1, column=0, columnspan=2, sticky=U.sticky_all)
+        self.__make_coding_workspace()
         self.menu.disable_actions()
 
     def reset(self):
@@ -197,17 +163,61 @@ class Application(tkinter.Tk):
         """
         create a player control frame
         """
-        self.control = PlayerControl(parent=self, file_name = fname)
-        self.control.grid(row=1, column=0, sticky=U.sticky_all)
+        self.__make_coding_workspace()
+        self.control = PlayerControl(
+            parent=self.coding_workspace,
+            file_name=fname,
+            application=self,
+        )
+        self.control.grid(row=0, column=1, sticky=(tkinter.N, tkinter.E),
+                          padx=20, pady=20)
         self.state['media_loaded'] = True
 
     def make_coding_frame(self, fname):
         """
         creates the coding frame
         """
-        self.framework = FrameworkFrame(parent=self, filename=fname)
-        self.framework.grid(row=2, column=0, sticky=U.sticky_all)
+        self.__make_coding_workspace()
+        self.framework = FrameworkFrame(
+            parent=self.coding_workspace,
+            filename=fname,
+            application=self,
+        )
+        self.framework.grid(row=0, column=0, sticky=U.sticky_all,
+                            padx=20, pady=20)
         self.state['code_loaded'] = True
+
+    def __make_coding_workspace(self):
+        """
+        Create the lower yellow area that holds coding widgets and controls.
+        """
+        if self.coding_workspace is not None and self.coding_workspace.winfo_exists():
+            return
+
+        config = load_encoder_config(
+            self.cwd, required_sections=("codingframework",)
+        )
+        coding_config = config["codingframework"]
+
+        self.grid_columnconfigure(0, weight=1)
+        self.grid_columnconfigure(1, weight=1)
+        self.grid_rowconfigure(2, weight=1)
+
+        self.coding_workspace = tkinter.LabelFrame(self)
+        self.coding_workspace.configure(
+            background=coding_config["background"],
+            borderwidth=coding_config.getint("borderwidth"),
+            padx=20,
+            pady=20,
+            relief=coding_config["relief"],
+            text='Coding framework: ',
+            font=('bold',),
+        )
+        self.coding_workspace.grid(row=2, column=0, columnspan=2,
+                                   sticky=U.sticky_all)
+        self.coding_workspace.grid_columnconfigure(0, weight=1)
+        self.coding_workspace.grid_columnconfigure(1, weight=1)
+        self.coding_workspace.grid_rowconfigure(0, weight=1)
 
     @property
     def context(self):

@@ -5,9 +5,7 @@ This module deals with all the encoding procedure:
 - records the codes and pass it to the application.
 """
 
-import os
 import json
-import configparser
 from datetime import datetime
 
 import tkinter
@@ -15,54 +13,35 @@ import tkinter.simpledialog
 import tkinter.messagebox
 from tkinter.colorchooser import askcolor
 
+from codix.encoder.config import load_encoder_config
 import codix.encoder.utils as U
 
-bd = 2 # borderwidth
-coding_bg = 'lightsteelblue' # information background
-dark_bg = 'dimgray'
-light_bg = 'lightsteelblue'
-disabled_bg = 'light gray' # disabled background
-relief = 'groove' # ['flat', 'raised', 'sunken', 'solid', 'ridge', 'groove']
-panel_max = 5
-CONFIG = 'config.ini'
 
+class FrameworkFrame(tkinter.Frame):
 
-class FrameworkFrame(tkinter.LabelFrame):
-
-    def __init__(self, parent, filename):
+    def __init__(self, parent, filename, application=None):
 
 # FIXME: this is complicated to have rawcode and incode...
         rawcode, incode = self.load_code(filename)
         self.encoding = incode['code']
         player = incode['player']
-        self.application = parent
+        self.application = application or parent
 
+        config = load_encoder_config(
+            self.application.cwd, required_sections=("codingframework",)
+        )
+        coding_config = config["codingframework"]
+        border_width = coding_config.getint("borderwidth")
+        coding_bg = coding_config["background"]
+        relief = coding_config["relief"]
+        self.disabled_bg = coding_config["disabled_bg"]
+        self.panel_max = coding_config.getint("panel_max")
 
-        # config = configparser.ConfigParser()
-        # if os.path.exists(os.path.join(self.application.cwd, CONFIG)):
-        #     config.read(os.path.join(self.application.cwd, CONFIG))
-        # else:
-        #     config.read(CONFIG)
-
-        # bd = config['codingframework']['borderwidth']
-        # coding_bg = config['codingframework']['background']
-        # relief = config['codingframework']['relief']
-        # disabled_bg = config['codingframework']['disabled_bg']
-        # panel_max = config['codingframework']['panel_max']
-
-
-        tkinter.LabelFrame.__init__(self, parent)
+        tkinter.Frame.__init__(self, parent)
         self.configure(background=coding_bg,
-                       borderwidth=bd,
+                       borderwidth=border_width,
                        padx=20, pady=20,
-                       relief=relief,
-                       text='Coding framework: ', font=('bold',))
-        self.grid(columnspan=2, row=2)
-
-        # Interface color
-        self.interface_button = tkinter.Button(self, text = "Dark mode",
-                                               command = self.application.change_interface)
-        self.interface_button.grid(row=3, column = 0, sticky = 'w')
+                       relief=relief)
 
 #FIXME: Not sure this is the best place...
         self.application.container['code'] = rawcode
@@ -74,13 +53,16 @@ class FrameworkFrame(tkinter.LabelFrame):
         self.spec_frame = SpecificationFrame(self)
         self.spec_frame.grid(sticky=U.sticky_all)
 
-        self.coding_frame = CodingFrame(parent=self, encoding=self.encoding)
+        self.coding_frame = CodingFrame(
+            parent=self,
+            encoding=self.encoding,
+            disabled_bg=self.disabled_bg,
+            panel_max=self.panel_max,
+        )
         self.coding_frame.grid(column=0, columnspan=2, sticky=U.sticky_all)
         self.config_processing_buttons('disabled')
         self.bind('<Button-3>', self.change_color)
 
-        self.dark_bg = dark_bg
-        self.light_bg = light_bg
         self.data = {}
         self.coding_comments = []
         self.elements = [self]
@@ -267,44 +249,56 @@ class FrameworkFrame(tkinter.LabelFrame):
 
 class CodingFrame(tkinter.LabelFrame):
 
-    def __init__(self, parent, encoding): # coding is a dict
+    def __init__(self, parent, encoding, disabled_bg, panel_max): # coding is a dict
         tkinter.LabelFrame.__init__(self, parent)
         self.configure(text='Codes', padx=10, pady=10)
         self.parent = parent
+        self.disabled_bg = disabled_bg
+        self.panel_max = panel_max
 
         sites = list(encoding.keys())
         sites.sort()
-        self.panels = [Panel(parent=self, name=site, codes=encoding[site]) for site in sites]
+        self.panels = [
+            Panel(
+                parent=self,
+                name=site,
+                codes=encoding[site],
+                disabled_bg=self.disabled_bg,
+            )
+            for site in sites
+        ]
 
         # Set the panels on several rows and columns according to panel_max
         # panels per row. Better ergonomy when there is a lot of recording sites.
         for no_col, panel in enumerate(self.panels):
-            col = no_col % panel_max
-            row = no_col // panel_max
+            col = no_col % self.panel_max
+            row = no_col // self.panel_max
             panel.rowconfigure(row, weight=3)
             panel.columnconfigure(col, weight=1)
             panel.grid(row=row, column=col, sticky=U.sticky_all)
 
         comment_frame = tkinter.LabelFrame(self, text='Comment: ')
-        comment_frame.grid(row=col+1, column=0, columnspan=len(self.panels),
+        comment_row = (len(self.panels) - 1) // self.panel_max + 1
+        comment_frame.grid(row=comment_row, column=0, columnspan=max(1, len(self.panels)),
                                             sticky=U.sticky_all)
         self.comment = tkinter.StringVar()
         self.comment_ent = tkinter.Entry(comment_frame,
                                          textvariable=self.comment,
-                                         disabledbackground=disabled_bg,
+                                         disabledbackground=self.disabled_bg,
                                          width=60)
         self.comment_ent.grid(sticky=U.sticky_all)
 
         self.record_but = tkinter.Button(self, text="Record",
                                                height=2,
                                                command=parent.record_state)
-        self.record_but.grid(column=panel_max+1, row=0, rowspan=2, sticky=U.sticky_all)
+        self.record_but.grid(column=self.panel_max+1, row=0, rowspan=2, sticky=U.sticky_all)
 
 class Panel(tkinter.LabelFrame):
 
-    def __init__(self, parent, name, codes):
+    def __init__(self, parent, name, codes, disabled_bg):
         tkinter.LabelFrame.__init__(self, parent)
         self.name = name
+        self.disabled_bg = disabled_bg
         self.configure(text=name, padx=10, pady=10, labelanchor='n')
 
         max_symbols = max([len(codes[k]) for k in codes.keys()])
@@ -332,7 +326,7 @@ class Panel(tkinter.LabelFrame):
 
             msg = tkinter.Entry(self, state=tkinter.DISABLED,
                                       width=10,
-                                      disabledbackground=disabled_bg,
+                                      disabledbackground=self.disabled_bg,
                                       disabledforeground='black',
                                       textvariable=self.coding[code_name]['var'])
             msg.grid(row=max_symbols+1, column=local_col, sticky=U.sticky_all)
@@ -349,6 +343,7 @@ class SpecificationFrame(tkinter.LabelFrame):
 
         # self.parent = parent
         tkinter.LabelFrame.__init__(self, parent)
+        disabled_bg = parent.disabled_bg
 
         self.configure(text='Specifications', padx=10, pady=10)
 

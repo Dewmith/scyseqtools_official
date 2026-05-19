@@ -122,7 +122,7 @@ class Application(tkinter.Tk):
                               states=(tkinter.NORMAL,    # load media
                                       tkinter.DISABLED,  # load code
                                       tkinter.DISABLED)) # load data
-        self.info.grid(row=1, column=0, columnspan=2, sticky=U.sticky_all)
+        self.info.grid(row=1, column=1, sticky=U.sticky_all)
         self.__make_coding_workspace()
         self.menu.disable_actions()
 
@@ -133,7 +133,7 @@ class Application(tkinter.Tk):
                               states=(tkinter.DISABLED, # load code
                                       tkinter.DISABLED, # load media
                                       tkinter.NORMAL))  # load data
-        self.info.grid(row=1, column=0, columnspan=2, sticky=U.sticky_all)
+        self.info.grid(row=1, column=1, sticky=U.sticky_all)
         self.__make_coding_workspace()
         self.menu.disable_actions()
 
@@ -163,14 +163,12 @@ class Application(tkinter.Tk):
         """
         create a player control frame
         """
-        self.__make_coding_workspace()
         self.control = PlayerControl(
-            parent=self.coding_workspace,
+            parent=self,
             file_name=fname,
             application=self,
         )
-        self.control.grid(row=0, column=1, sticky=(tkinter.N, tkinter.E),
-                          padx=20, pady=20)
+        self.control.grid(row=1, column=0, sticky=U.sticky_all)
         self.state['media_loaded'] = True
 
     def make_coding_frame(self, fname):
@@ -189,7 +187,7 @@ class Application(tkinter.Tk):
 
     def __make_coding_workspace(self):
         """
-        Create the lower yellow area that holds coding widgets and controls.
+        Create the lower yellow area that holds coding widgets.
         """
         if self.coding_workspace is not None and self.coding_workspace.winfo_exists():
             return

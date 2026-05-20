@@ -41,3 +41,10 @@ class ApplicationMenu(tkinter.Menu):
         """
         for idx in [0,1,2,4]:
             self.action_menu.entryconfigure(idx, state=tkinter.DISABLED)
+
+    def enable_actions(self):
+        """
+        When an action finishes they are all enabled
+        """
+        for idx in [0,1,2,4]:
+            self.action_menu.entryconfigure(idx, state=tkinter.NORMAL)

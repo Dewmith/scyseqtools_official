@@ -108,6 +108,12 @@ class Application(tkinter.Tk):
         self.menu.disable_actions()
         self.after_idle(self.newcode.focus_first_field)
 
+    def finish_new_code(self):
+        """Return to the main action menu after defining a new code.
+        """
+        self.newcode = None
+        self.menu.enable_actions()
+
     def start_session(self):
         """Starting a new coding session
         """

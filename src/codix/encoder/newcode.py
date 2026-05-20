@@ -124,7 +124,7 @@ class NewCode(tkinter.LabelFrame):
         self.recorded_sites.grid(row=1, column=0, columnspan=6, sticky=U.sticky_all)
 
         # save all specs
-        savebutton = tkinter.Button(self, text='Save all specifications and quit',
+        savebutton = tkinter.Button(self, text='Save code',
                                           command = self.record_all )
         savebutton.grid(sticky=U.sticky_all)
 
@@ -288,6 +288,7 @@ class NewCode(tkinter.LabelFrame):
             print('data: ', all_specs)
             print(f'Saved in {filename} and {html_file}')
             self.saved = True
+            self.application.finish_new_code()
             self.destroy()
         else:
             tkinter.messagebox.showinfo('File not saved', 'File has not been saved')

@@ -152,6 +152,11 @@ class InfoFrame(tkinter.LabelFrame):
 
         self.bind('<Button-3>', self.change_color)
 
+    def data_folder(self):
+        """
+        Return the working directory's data folder, creating it if needed.
+        """
+        return U.ensure_subdirectory(self.application.cwd, 'data')
 
     def ask_media(self):
         """Load media file
@@ -188,7 +193,7 @@ class InfoFrame(tkinter.LabelFrame):
 
         # lpcomment:
         # Finally, I don't like .jod extension. maybe go back to .cod?
-        code_folder = os.path.expanduser(self.application.cwd)
+        code_folder = self.data_folder()
         code_filetypes = [('Code file', '*.cod'), ('New code', '*.jod')]
         fname = tkinter.filedialog.askopenfilename(filetypes= code_filetypes,
                                             initialdir=code_folder)
@@ -204,7 +209,7 @@ class InfoFrame(tkinter.LabelFrame):
 
         #fname = "/home/leo/codix-suite/codix/codix-encoder/new_record"
 
-        data_folder = os.path.join(os.path.expanduser(self.application.cwd), 'data')
+        data_folder = self.data_folder()
         data_filetypes = [('Codix data file', '*.cdx'), ('All files', '*.*')]
 
         fname = tkinter.filedialog.askopenfilename(filetypes= data_filetypes,
@@ -269,7 +274,7 @@ class InfoFrame(tkinter.LabelFrame):
 
     def save_as(self):
         fname = self.data_file.get()
-        data_folder = os.path.join(os.path.expanduser(self.application.cwd), 'data')
+        data_folder = self.data_folder()
         filename = \
         tkinter.filedialog.asksaveasfilename(initialdir=data_folder)
 

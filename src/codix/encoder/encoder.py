@@ -9,7 +9,6 @@ We need doc
 import os
 # import json
 #import time
-import pathlib
 
 import tkinter
 from tkinter import filedialog
@@ -72,8 +71,8 @@ class Application(tkinter.Tk):
         Reads initial cwd from file or from default value and set cwd to the one
         provided through filedialog.
      
-        Also make sure that the folders "media" and "data" are present. Create
-        them if they are lacking.
+        Also make sure that the folder "data" is present. Create it if it is
+        lacking.
         """
         config = load_encoder_config(required_sections=("application",))
         cwd_filename = config["application"]["cwd_file"]
@@ -94,14 +93,7 @@ class Application(tkinter.Tk):
         with open(cwd_filename, 'w', encoding='utf-8') as cwdfile:
             cwdfile.write(cwd)
 
-        local_config = load_encoder_config(cwd, required_sections=("application",))
-        required_subfolders = [
-            folder.strip()
-            for folder in local_config["application"]["required_subfolders"].split(",")
-            if folder.strip()
-        ]
-        for folder in required_subfolders:
-            pathlib.Path(os.path.join(cwd, folder)).mkdir(exist_ok=True)
+        U.ensure_subdirectory(cwd, "data")
 
         return cwd
 

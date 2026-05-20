@@ -255,7 +255,7 @@ class NewCode(tkinter.LabelFrame):
         else:
             all_specs.update({'sites': self.sites_container})
 
-        code_folder = os.path.expanduser(self.application.cwd)
+        code_folder = U.ensure_subdirectory(self.application.cwd, 'data')
         filename = tkinter.filedialog.asksaveasfilename(
                                       initialdir=code_folder,
                                       initialfile=pname+'.jod')

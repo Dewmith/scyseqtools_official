@@ -1,4 +1,5 @@
 # import ib
+import os
 import tkinter
 from pymediainfo import MediaInfo
 
@@ -15,6 +16,14 @@ def focus_widget(widget):
     top_level.lift()
     top_level.focus_force()
     widget.focus_set()
+
+def ensure_subdirectory(parent, name):
+    """
+    Create a direct subdirectory if needed and return its path.
+    """
+    folder = os.path.join(os.path.expanduser(parent), name)
+    os.makedirs(folder, exist_ok=True)
+    return folder
 
 def is_valid_media(fname):
     if is_valid_filename(fname):

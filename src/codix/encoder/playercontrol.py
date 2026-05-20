@@ -4,8 +4,6 @@ Module that controls VLC player for codix encoder
 
 import time
 
-from threading import Timer
-
 import tkinter
 import tkinter.messagebox
 from tkinter.colorchooser import askcolor
@@ -44,6 +42,12 @@ def bound_time_to_media(value, max_time):
     if max_time > 0 and value > max_time:
         return max_time, "after_end"
     return value, None
+
+
+def regular_step_target(start_time, period_seconds, max_time):
+    """Return the intended end time for a regular playback step."""
+    target_time = start_time + int(round(period_seconds * 1000))
+    return bound_time_to_media(target_time, max_time)
 
 
 class PlayerControl(tkinter.LabelFrame):
@@ -130,6 +134,8 @@ class PlayerControl(tkinter.LabelFrame):
         time.sleep(1) # 0.1 is too short I loose sound!?
         self.player.set_pause(do_pause=1)
         self._state = "paused"
+        self._current_time = 0
+        self._step_after_id = None
         self.max_time = self.refresh_max_time() # a long in ms
         self.time = 0 # 'Initial time')
         print('Length of media file: ', self.max_time, ' ms.')
@@ -151,17 +157,43 @@ class PlayerControl(tkinter.LabelFrame):
         self.max_time = max_time
         return max_time
 
-    def step_play(self, time_interval):
+    def step_play(self, time_interval, target_time=None):
         """
         Plays for a time step 'time_interval'
         """
         # if self.application.state['code_loaded'] and self.application.context != 'processing':
         #             self._root().framework.spec_frame.start_but.config(state='disabled')
-        print('Start step play at: ', self.time)
+        start_time = self.time
+        print('Start step play at: ', start_time)
+        if target_time is None:
+            target_time, _ = regular_step_target(
+                start_time,
+                time_interval,
+                self.max_time,
+            )
         self.state = "s_playing"
-        interval_timer = Timer(time_interval, self.dopause)
         self.player.play()
-        interval_timer.start()
+        delay = max(0, int(round(time_interval * 1000)))
+        self._step_after_id = self.after(delay, self.finish_step_play, target_time)
+
+    def finish_step_play(self, target_time):
+        """
+        Pause after a regular step and snap the player to the intended target.
+        """
+        self._step_after_id = None
+        self.player.pause()
+        print('Raw stop time before snap: ', self.player.get_time() if hasattr(self.player, 'get_time') else self._current_time)
+        self.time = target_time
+        self.state = "paused"
+        print('End time: ', target_time)
+
+        if self.application.context == "processing":
+            self.play_but.config(state='disabled')
+            self.application.time_step = '1p'
+
+            print('End PP time step: ', self.application.time_step)
+
+        self.finish_playpause()
 
     def cont_play(self):
         """
@@ -189,22 +221,16 @@ class PlayerControl(tkinter.LabelFrame):
         - pause if the player is playing.
         """
         if self.mode == 'regular':
-            if self.period is not None :
-                itime = self.player.get_time()
-                self.step_play(self.period)
-
-                while self.state != 'paused':
-                    pass # wait for state == 'paused'
-                print('End time: ', self.time)
-
-                ftime = itime + int(self.period*1000)
-                self.time = ftime #, 'Synchronized time')
-
-                if self.application.context == "processing":
-                    self.play_but.config(state='disabled')
-                    self.application.time_step = '1p'
-
-                    print('End PP time step: ', self.application.time_step)
+            period = self.period
+            if period is not None :
+                itime = self.time
+                target_time, _ = regular_step_target(
+                    itime,
+                    period,
+                    self.max_time,
+                )
+                self.step_play(period, target_time)
+                return
             else:
                 pass
 
@@ -221,6 +247,12 @@ class PlayerControl(tkinter.LabelFrame):
 
             raise ValueError('Unknown player mode' + self.mode)
 
+        self.finish_playpause()
+
+    def finish_playpause(self):
+        """
+        Apply common post-play/pause context updates.
+        """
         if self.application.context == 'processing' :
             self.application.context = 'not_recorded'
 
@@ -277,7 +309,13 @@ class PlayerControl(tkinter.LabelFrame):
         Time comes from the player but we need more control. We set it as a
         property to have more control.
         """
-        return self.player.get_time() # in ms
+        if self.state == "paused":
+            return self._current_time
+
+        player_time = self.player.get_time()
+        if player_time >= 0:
+            self._current_time = player_time
+        return player_time # in ms
 
     @time.setter
     def time(self, value):
@@ -293,9 +331,10 @@ class PlayerControl(tkinter.LabelFrame):
                               'cannot set time after end sets to max time')
 
         self.player.set_time(tval)
+        self._current_time = tval
         time_sec = '{:10.3f}'.format(tval/1000.)
         self._time.set(time_sec)
-        print(f'Player time setter: {self.time}.')
+        print(f'Player time setter: {tval}.')
 
 #    def kb_set_period(self, tkevent):
 #        """

@@ -2,7 +2,7 @@ import textwrap
 
 import pytest
 
-from codix.encoder.config import load_encoder_config
+from scyseqtools.encoder.config import load_encoder_config
 
 
 def test_load_encoder_config_uses_bundled_defaults():

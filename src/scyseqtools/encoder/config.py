@@ -12,11 +12,11 @@ VALID_ENCODER_LAYOUTS = ("embedded", "detached")
 def load_encoder_config(cwd=None, required_sections=()):
     """Load encoder configuration.
 
-    A config file in the Codix working directory overrides the bundled defaults.
+    A config file in the ScySeqTools working directory overrides the bundled defaults.
     """
     config = configparser.ConfigParser()
     config.read_string(
-        files("codix.encoder").joinpath(CONFIG_FILENAME).read_text(encoding="utf-8")
+        files("scyseqtools.encoder").joinpath(CONFIG_FILENAME).read_text(encoding="utf-8")
     )
 
     if cwd is not None:

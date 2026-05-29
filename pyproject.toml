@@ -3,9 +3,9 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [project]
-name = "codix"
+name = "scyseqtools"
 version = "0.1.0"
-description = "Codix is a suite of softwares: encoder and analyser"
+description = "ScySeqTools is a suite of software: encoder and analyser"
 readme = "README.md"
 requires-python = ">=3.9"
 license = {text = "MIT"}
@@ -22,18 +22,14 @@ docs = ["sphinx", "myst-parser", "sphinxcontrib-bibtex", "sphinxcontrib-mermaid"
 mpv = ["mpv"]
 
 [project.scripts]
-codix-analyser = "codix.analyser.main:main"
-codix-encoder = "codix.encoder.main:main"
+scyseq-analyser = "scyseqtools.analyser.main:main"
+scyseq-encoder = "scyseqtools.encoder.main:main"
 
-#[tool.hatch.build.targets.wheel]
-#packages = ["src/analyser", "src/encoder"]
+[tool.hatch.build.targets.wheel]
+packages = ["src/scyseqtools"]
 
 [tool.hatch.envs.default]
 features = ["dev", "docs"]
-
-#[tool.hatch.build.targets.wheel]
-#packages = ["src/encoder", "src/analyser"]
-
 
 [tool.hatch.metadata]
 allow-direct-references = true

@@ -10,7 +10,7 @@ import os
 # import inspect
 import sys
 
-from codix.analyser.parameters import Parameter
+from scyseqtools.analyser.parameters import Parameter
 # import utils as U
 # import symbolix
 

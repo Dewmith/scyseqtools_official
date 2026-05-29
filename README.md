@@ -1,10 +1,10 @@
-# codix-suite
+# ScySeqTools
 
-Codix is a Python toolkit for coding and analysing behaviours. It currently
+ScySeqTools is a Python toolkit for coding and analysing behaviours. It currently
 provides two command line launchers:
 
-- `codix-encoder`
-- `codix-analyser`
+- `scyseq-encoder`
+- `scyseq-analyser`
 
 ## Requirements
 
@@ -32,10 +32,10 @@ Clone or download the project, then open a terminal in the project folder.
 On Windows, use PowerShell; on macOS or Linux, use your usual terminal.
 
 ```sh
-cd path/to/codix-suite
+cd path/to/scyseqtools
 ```
 
-Replace `path/to/codix-suite` with the folder where you cloned or downloaded
+Replace `path/to/scyseqtools` with the folder where you cloned or downloaded
 the project.
 
 ### 1. Check Python
@@ -75,12 +75,12 @@ hatch shell
 Your prompt should now start with something like:
 
 ```text
-(codix) ...
+(scyseqtools) ...
 ```
 
-That means you are inside the Codix virtual environment.
+That means you are inside the ScySeqTools virtual environment.
 
-### 4. Install Codix in Editable Mode
+### 4. Install ScySeqTools in Editable Mode
 
 Inside the Hatch shell, install the current project:
 
@@ -88,42 +88,42 @@ Inside the Hatch shell, install the current project:
 python -m pip install -e .
 ```
 
-The `-e` option means "editable": Python imports Codix directly from this source
+The `-e` option means "editable": Python imports ScySeqTools directly from this source
 folder, so local code changes are picked up without reinstalling every time.
 
 ### 5. Verify the Install
 
 ```sh
-python -m pip show codix
-python -c "import codix; print(codix.__file__)"
-python -c "import codix.encoder.main; print('ok')"
+python -m pip show scyseqtools
+python -c "import scyseqtools; print(scyseqtools.__file__)"
+python -c "import scyseqtools.encoder.main; print('ok')"
 ```
 
 If the last command prints `ok`, the package import works.
 
-## Run Codix
+## Run ScySeqTools
 
 Inside the Hatch shell:
 
 ```sh
-codix-encoder
+scyseq-encoder
 ```
 
 or:
 
 ```sh
-codix-analyser
+scyseq-analyser
 ```
 
 The encoder opens a graphical interface and asks you to choose a working
-directory. Codix expects or creates `media` and `data` folders inside that
+directory. ScySeqTools expects or creates `media` and `data` folders inside that
 working directory.
 
 ### Encoder Window Layout
 
 By default, the encoder opens with the classic single-window layout. To split
 the encoder into separate Information, Control, and Coding framework windows,
-add this to the `config.ini` file in your Codix working directory:
+add this to the `config.ini` file in your ScySeqTools working directory:
 
 ```ini
 [application]

@@ -2,8 +2,8 @@
 A Tk client for symbolic analysis
 """
 
-from codix.analyser.methods import Method
-from codix.analyser.symbolix import Symbolix
+from scyseqtools.analyser.methods import Method
+from scyseqtools.analyser.symbolix import Symbolix
 
 import os
 import sys
@@ -93,7 +93,7 @@ class Application(tkinter.Tk):
         """
         returns the selected directory
         """
-        initialdir = "/home/zarpe/Documents/tests_codix/data"
+        initialdir = "/home/zarpe/Documents/tests_scyseqtools/data"
 
         outdir = tkinter.filedialog.askdirectory(initialdir=initialdir)
         self.ddir.set(outdir)

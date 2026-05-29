@@ -3,6 +3,7 @@ doc/.~*#
 gpt*
 _Trash
 build/
+dist/
 *.py[cod]
 cwdfile.ini
 .DS_Store

@@ -2,7 +2,20 @@ import textwrap
 
 import pytest
 
-from scyseqtools.encoder.config import load_encoder_config
+from scyseqtools.encoder.config import (
+    APP_COMPONENT_NAME,
+    APP_NAME,
+    CONFIG_FILENAME,
+    CWD_FILENAME,
+    get_cwd_file_path,
+    get_user_config_path,
+    load_encoder_config,
+)
+
+
+@pytest.fixture(autouse=True)
+def isolated_appdata(monkeypatch, tmp_path):
+    monkeypatch.setenv("APPDATA", str(tmp_path / "AppData"))
 
 
 def test_load_encoder_config_uses_bundled_defaults():
@@ -22,6 +35,62 @@ def test_load_encoder_config_uses_bundled_defaults():
     assert config["playercontrol"]["backend"] == "vlc"
     assert config["playercontrol"]["relief"] == "groove"
     assert config["codingframework"]["background"] == "palegoldenrod"
+
+
+def test_load_encoder_config_creates_user_config_from_defaults():
+    load_encoder_config(required_sections=("application",))
+
+    user_config = get_user_config_path()
+    assert user_config.exists()
+    assert user_config.name == CONFIG_FILENAME
+    assert user_config.parent.name == APP_COMPONENT_NAME
+    assert user_config.parent.parent.name == APP_NAME
+    assert user_config.read_text(encoding="utf-8").startswith("[application]")
+
+
+def test_load_encoder_config_reads_user_config_before_cwd_override(tmp_path):
+    user_config = get_user_config_path()
+    user_config.parent.mkdir(parents=True, exist_ok=True)
+    user_config.write_text(
+        textwrap.dedent(
+            """
+            [infoframe]
+            background = lavender
+
+            [playercontrol]
+            backend = mpv
+            """
+        ),
+        encoding="utf-8",
+    )
+
+    project_dir = tmp_path / "project"
+    project_dir.mkdir()
+    (project_dir / "config.ini").write_text(
+        textwrap.dedent(
+            """
+            [infoframe]
+            background = plum
+            """
+        ),
+        encoding="utf-8",
+    )
+
+    config = load_encoder_config(
+        project_dir,
+        required_sections=("infoframe", "playercontrol"),
+    )
+
+    assert config["infoframe"]["background"] == "plum"
+    assert config["playercontrol"]["backend"] == "mpv"
+
+
+def test_get_cwd_file_path_stores_relative_file_in_user_config_dir():
+    config = load_encoder_config(required_sections=("application",))
+    cwd_file = get_cwd_file_path(config)
+
+    assert cwd_file.name == CWD_FILENAME
+    assert cwd_file.parent == get_user_config_path().parent
 
 
 def test_load_encoder_config_allows_cwd_override(tmp_path):

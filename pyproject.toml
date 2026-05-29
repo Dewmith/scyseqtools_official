@@ -18,6 +18,7 @@ dependencies = [
 
 [project.optional-dependencies]
 dev = ["pytest"]
+build = ["pyinstaller"]
 docs = ["sphinx", "myst-parser", "sphinxcontrib-bibtex", "sphinxcontrib-mermaid"]
 mpv = ["mpv"]
 
@@ -27,9 +28,14 @@ scyseq-encoder = "scyseqtools.encoder.main:main"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/scyseqtools"]
+force-include = { "src/scyseqtools/encoder/config.ini" = "scyseqtools/encoder/config.ini" }
 
 [tool.hatch.envs.default]
-features = ["dev", "docs"]
+features = ["dev", "docs", "build"]
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
+testpaths = ["tests"]
 
 [tool.hatch.metadata]
 allow-direct-references = true

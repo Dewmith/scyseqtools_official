@@ -3,26 +3,95 @@
 import configparser
 import os
 from importlib.resources import files
+from pathlib import Path
 
 
+APP_NAME = "ScySeqTools"
+APP_COMPONENT_NAME = "Encoder"
 CONFIG_FILENAME = "config.ini"
+CWD_FILENAME = "cwdfile.ini"
 VALID_ENCODER_LAYOUTS = ("embedded", "detached")
 
 
-def load_encoder_config(cwd=None, required_sections=()):
+def bundled_config_text():
+    """Return the default config distributed with the package."""
+    return files("scyseqtools.encoder").joinpath(CONFIG_FILENAME).read_text(
+        encoding="utf-8"
+    )
+
+
+def get_user_config_dir(config_dir=None):
+    """Return the folder that stores user-editable encoder configuration."""
+    if config_dir is not None:
+        return Path(config_dir)
+
+    appdata = os.environ.get("APPDATA")
+    if appdata:
+        return Path(appdata) / APP_NAME / APP_COMPONENT_NAME
+
+    if os.name == "nt":
+        return Path.home() / "AppData" / "Roaming" / APP_NAME / APP_COMPONENT_NAME
+
+    xdg_config_home = os.environ.get("XDG_CONFIG_HOME")
+    if xdg_config_home:
+        return Path(xdg_config_home) / APP_NAME / APP_COMPONENT_NAME
+
+    return Path.home() / ".config" / APP_NAME / APP_COMPONENT_NAME
+
+
+def get_user_config_path(config_dir=None):
+    """Return the user-editable config.ini path."""
+    return get_user_config_dir(config_dir) / CONFIG_FILENAME
+
+
+def ensure_user_config_file(config_dir=None):
+    """Create the user-editable config.ini from defaults if it is missing."""
+    config_path = get_user_config_path(config_dir)
+    config_path.parent.mkdir(parents=True, exist_ok=True)
+    if not config_path.exists():
+        config_path.write_text(bundled_config_text(), encoding="utf-8")
+    return config_path
+
+
+def get_app_state_file_path(filename=CWD_FILENAME, config_dir=None):
+    """Return an app-owned state file path inside the user config folder."""
+    expanded = Path(os.path.expandvars(os.path.expanduser(filename)))
+    if expanded.is_absolute():
+        expanded.parent.mkdir(parents=True, exist_ok=True)
+        return expanded
+
+    config_path = get_user_config_dir(config_dir) / expanded
+    config_path.parent.mkdir(parents=True, exist_ok=True)
+    return config_path
+
+
+def get_cwd_file_path(config=None, config_dir=None):
+    """Return the file used to remember the last selected working directory."""
+    if config is None:
+        config = load_encoder_config(
+            required_sections=("application",),
+            config_dir=config_dir,
+        )
+    cwd_filename = config["application"].get("cwd_file", CWD_FILENAME)
+    return get_app_state_file_path(cwd_filename, config_dir=config_dir)
+
+
+def load_encoder_config(cwd=None, required_sections=(), config_dir=None):
     """Load encoder configuration.
 
-    A config file in the ScySeqTools working directory overrides the bundled defaults.
+    Defaults are loaded first, then the user-editable config, then an optional
+    config file in the selected working directory.
     """
     config = configparser.ConfigParser()
-    config.read_string(
-        files("scyseqtools.encoder").joinpath(CONFIG_FILENAME).read_text(encoding="utf-8")
-    )
+    config.read_string(bundled_config_text())
+
+    user_config = ensure_user_config_file(config_dir)
+    config.read(user_config, encoding="utf-8")
 
     if cwd is not None:
         local_config = os.path.join(cwd, CONFIG_FILENAME)
         if os.path.exists(local_config):
-            config.read(local_config)
+            config.read(local_config, encoding="utf-8")
 
     missing_sections = [
         section for section in required_sections if not config.has_section(section)

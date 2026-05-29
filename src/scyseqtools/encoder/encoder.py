@@ -24,7 +24,11 @@ from scyseqtools.encoder.infoframe import InfoFrame
 from scyseqtools.encoder.playercontrol import PlayerControl
 from scyseqtools.encoder.applicationmenu import ApplicationMenu
 from scyseqtools.encoder.codingframe import FrameworkFrame
-from scyseqtools.encoder.config import get_encoder_layout, load_encoder_config
+from scyseqtools.encoder.config import (
+    get_cwd_file_path,
+    get_encoder_layout,
+    load_encoder_config,
+)
 from scyseqtools.encoder.newcode import NewCode
 
 __version__ = '0.9'
@@ -83,11 +87,11 @@ class Application(tkinter.Tk):
         lacking.
         """
         config = load_encoder_config(required_sections=("application",))
-        cwd_filename = config["application"]["cwd_file"]
+        cwd_filename = get_cwd_file_path(config)
         default_cwd = config["application"]["default_cwd"]
 
-        if os.path.exists(cwd_filename):
-            with open(cwd_filename, 'r', encoding='utf-8') as cwdfile:
+        if cwd_filename.exists():
+            with cwd_filename.open('r', encoding='utf-8') as cwdfile:
                 initdir = os.path.expanduser(cwdfile.readline())
                 # print('initdir from file: ', initdir)
         else:
@@ -98,7 +102,7 @@ class Application(tkinter.Tk):
         while cwd == '':
             cwd = filedialog.askdirectory(title="Choose working directory",
                                           initialdir=initdir, mustexist=True)
-        with open(cwd_filename, 'w', encoding='utf-8') as cwdfile:
+        with cwd_filename.open('w', encoding='utf-8') as cwdfile:
             cwdfile.write(cwd)
 
         U.ensure_subdirectory(cwd, "data")

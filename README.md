@@ -119,15 +119,59 @@ The encoder opens a graphical interface and asks you to choose a working
 directory. ScySeqTools expects or creates `media` and `data` folders inside that
 working directory.
 
+## User Configuration
+
+On first run, ScySeqTools Encoder creates an editable config file here:
+
+```text
+%APPDATA%\ScySeqTools\Encoder\config.ini
+```
+
+The app loads configuration in this order:
+
+1. Bundled defaults inside the package or `.exe`.
+2. The user-editable `%APPDATA%\ScySeqTools\Encoder\config.ini`.
+3. A `config.ini` in the selected working directory, if present.
+
+That means users can change global defaults in AppData, and a specific project
+can override them by placing its own `config.ini` in the project working folder.
+The last selected working directory is remembered in:
+
+```text
+%APPDATA%\ScySeqTools\Encoder\cwdfile.ini
+```
+
 ### Encoder Window Layout
 
 By default, the encoder opens with the classic single-window layout. To split
 the encoder into separate Information, Control, and Coding framework windows,
-add this to the `config.ini` file in your ScySeqTools working directory:
+add this to the AppData or project `config.ini` file:
 
 ```ini
 [application]
 encoder_layout = detached
+```
+
+## Build a Single-File Windows EXE
+
+The Windows `.exe` build uses PyInstaller and does not bundle VLC. Before
+running the `.exe`, install 64-bit VLC and confirm this file exists:
+
+```powershell
+Test-Path "C:\Program Files\VideoLAN\VLC\libvlc.dll"
+```
+
+From the project root, install build dependencies and create the executable:
+
+```powershell
+python -m pip install -e ".[dev,build]"
+pyinstaller --clean --noconfirm scyseq-encoder.spec
+```
+
+The distributable file is created at:
+
+```text
+dist\ScySeq Encoder.exe
 ```
 
 

@@ -5,6 +5,8 @@ import os
 from importlib.resources import files
 from pathlib import Path
 
+import platformdirs
+
 
 APP_NAME = "ScySeqTools"
 APP_COMPONENT_NAME = "Encoder"
@@ -25,23 +27,24 @@ def get_user_config_dir(config_dir=None):
     if config_dir is not None:
         return Path(config_dir)
 
-    appdata = os.environ.get("APPDATA")
-    if appdata:
-        return Path(appdata) / APP_NAME / APP_COMPONENT_NAME
-
-    if os.name == "nt":
-        return Path.home() / "AppData" / "Roaming" / APP_NAME / APP_COMPONENT_NAME
-
-    xdg_config_home = os.environ.get("XDG_CONFIG_HOME")
-    if xdg_config_home:
-        return Path(xdg_config_home) / APP_NAME / APP_COMPONENT_NAME
-
-    return Path.home() / ".config" / APP_NAME / APP_COMPONENT_NAME
+    return platformdirs.user_config_path(
+        APP_NAME, appauthor=False, roaming=True
+    ) / APP_COMPONENT_NAME
 
 
 def get_user_config_path(config_dir=None):
     """Return the user-editable config.ini path."""
     return get_user_config_dir(config_dir) / CONFIG_FILENAME
+
+
+def get_user_state_dir(config_dir=None):
+    """Return the folder that stores user-specific encoder state."""
+    if config_dir is not None:
+        return Path(config_dir)
+
+    return platformdirs.user_state_path(
+        APP_NAME, appauthor=False, roaming=True
+    ) / APP_COMPONENT_NAME
 
 
 def ensure_user_config_file(config_dir=None):
@@ -54,15 +57,15 @@ def ensure_user_config_file(config_dir=None):
 
 
 def get_app_state_file_path(filename=CWD_FILENAME, config_dir=None):
-    """Return an app-owned state file path inside the user config folder."""
+    """Return an app-owned state file path inside the user state folder."""
     expanded = Path(os.path.expandvars(os.path.expanduser(filename)))
     if expanded.is_absolute():
         expanded.parent.mkdir(parents=True, exist_ok=True)
         return expanded
 
-    config_path = get_user_config_dir(config_dir) / expanded
-    config_path.parent.mkdir(parents=True, exist_ok=True)
-    return config_path
+    state_path = get_user_state_dir(config_dir) / expanded
+    state_path.parent.mkdir(parents=True, exist_ok=True)
+    return state_path
 
 
 def get_cwd_file_path(config=None, config_dir=None):

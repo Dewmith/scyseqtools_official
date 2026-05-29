@@ -12,7 +12,7 @@ license = {text = "MIT"}
 
 dependencies = [
  # "scyseq @ file://../../scyseq",  # local scyseq for now
-  "python-vlc", "numpy", "Pmw", "pymediainfo"
+  "python-vlc", "numpy", "Pmw", "pymediainfo", "platformdirs"
 ]
 
 

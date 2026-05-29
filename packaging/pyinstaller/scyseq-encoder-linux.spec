@@ -1,24 +1,26 @@
 # -*- mode: python ; coding: utf-8 -*-
 
+from pathlib import Path
+
 from PyInstaller.utils.hooks import collect_data_files, collect_dynamic_libs
 
 
-pymediainfo_datas = [
-    item for item in collect_data_files("pymediainfo")
-    if not item[0].lower().endswith(".dll")
-]
+repo_root = Path(SPECPATH).parents[1]
+src_dir = repo_root / "src"
+
+pymediainfo_datas = collect_data_files("pymediainfo")
 pymediainfo_binaries = collect_dynamic_libs("pymediainfo")
 
 
 a = Analysis(
-    ["src/scyseqtools/encoder/main.py"],
-    pathex=["src"],
+    [str(src_dir / "scyseqtools" / "encoder" / "main.py")],
+    pathex=[str(src_dir)],
     binaries=pymediainfo_binaries,
     datas=[
-        ("src/scyseqtools/encoder/config.ini", "scyseqtools/encoder"),
+        (str(src_dir / "scyseqtools" / "encoder" / "config.ini"), "scyseqtools/encoder"),
         *pymediainfo_datas,
     ],
-    hiddenimports=["pymediainfo", "vlc"],
+    hiddenimports=["platformdirs", "pymediainfo", "vlc"],
     hookspath=[],
     hooksconfig={},
     runtime_hooks=[],
@@ -34,7 +36,7 @@ exe = EXE(
     a.binaries,
     a.datas,
     [],
-    name="ScySeq Encoder",
+    name="scyseq-encoder",
     debug=False,
     bootloader_ignore_signals=False,
     strip=False,

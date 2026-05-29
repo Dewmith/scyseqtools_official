@@ -121,24 +121,29 @@ working directory.
 
 ## User Configuration
 
-On first run, ScySeqTools Encoder creates an editable config file here:
+On first run, ScySeqTools Encoder creates an editable config file in the
+standard per-user config folder for your operating system:
 
 ```text
-%APPDATA%\ScySeqTools\Encoder\config.ini
+Windows: %APPDATA%\ScySeqTools\Encoder\config.ini
+Ubuntu/Linux: ~/.config/ScySeqTools/Encoder/config.ini
+macOS: ~/Library/Application Support/ScySeqTools/Encoder/config.ini
 ```
 
 The app loads configuration in this order:
 
 1. Bundled defaults inside the package or `.exe`.
-2. The user-editable `%APPDATA%\ScySeqTools\Encoder\config.ini`.
+2. The user-editable OS config file shown above.
 3. A `config.ini` in the selected working directory, if present.
 
-That means users can change global defaults in AppData, and a specific project
+That means users can change global defaults in their user config folder, and a specific project
 can override them by placing its own `config.ini` in the project working folder.
 The last selected working directory is remembered in:
 
 ```text
-%APPDATA%\ScySeqTools\Encoder\cwdfile.ini
+Windows: %APPDATA%\ScySeqTools\Encoder\cwdfile.ini
+Ubuntu/Linux: ~/.local/state/ScySeqTools/Encoder/cwdfile.ini
+macOS: ~/Library/Application Support/ScySeqTools/Encoder/cwdfile.ini
 ```
 
 ### Encoder Window Layout
@@ -152,26 +157,54 @@ add this to the AppData or project `config.ini` file:
 encoder_layout = detached
 ```
 
-## Build a Single-File Windows EXE
+## Download Applications
 
-The Windows `.exe` build uses PyInstaller and does not bundle VLC. Before
-running the `.exe`, install 64-bit VLC and confirm this file exists:
+GitHub Actions builds downloadable encoder applications for Windows, Ubuntu,
+macOS Intel, and macOS Apple Silicon. Each workflow run uploads temporary build
+artifacts. Version tags matching `v*` also publish the same files as GitHub
+Release assets:
+
+```text
+ScySeqTools-Encoder-windows-x64.zip
+ScySeqTools-Encoder-ubuntu-22.04-x64.tar.gz
+ScySeqTools-Encoder-macos-x64.zip
+ScySeqTools-Encoder-macos-arm64.zip
+SHA256SUMS.txt
+```
+
+The packaged apps do not bundle VLC. Install VLC on the target machine before
+running the encoder. On Windows, confirm this file exists:
 
 ```powershell
 Test-Path "C:\Program Files\VideoLAN\VLC\libvlc.dll"
 ```
 
-From the project root, install build dependencies and create the executable:
+macOS builds are not signed or notarized yet, so users may need to right-click
+the app and choose **Open**, or allow it from macOS Privacy & Security settings.
+
+## Build Applications Locally
+
+From the project root, install build dependencies:
 
 ```powershell
 python -m pip install -e ".[dev,build]"
-pyinstaller --clean --noconfirm scyseq-encoder.spec
 ```
 
-The distributable file is created at:
+Then run the spec for your OS:
 
-```text
-dist\ScySeq Encoder.exe
+```powershell
+# Windows
+pyinstaller --clean --noconfirm packaging/pyinstaller/scyseq-encoder-windows.spec
+```
+
+```sh
+# Ubuntu/Linux
+pyinstaller --clean --noconfirm packaging/pyinstaller/scyseq-encoder-linux.spec
+```
+
+```sh
+# macOS
+pyinstaller --clean --noconfirm packaging/pyinstaller/scyseq-encoder-macos.spec
 ```
 
 

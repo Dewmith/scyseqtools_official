@@ -100,7 +100,7 @@ class Application(tkinter.Tk):
                                     state=tkinter.NORMAL,
                                     disabledbackground='white',
                                     width=50)
-        self.dir_but = tkinter.Button(config_frame, text='Choose directory',
+        self.dir_but = tkinter.Button(config_frame, text='Choose data directory',
                                      command=self.get_directory)
         dir_lab.grid(column=0, row=1)
         dir_ent.grid(column=1, row=1)

@@ -14,6 +14,7 @@ from scyseq import sequence as S
 from scyseq import information as I
 from scyseq import algorithmic as A
 from scyseq import stochastic as T
+from scyseq import operations as O
 
 SEQ_EXT = '.cdx'
 TABLE_EXT = '.csv'
@@ -114,6 +115,12 @@ def to_table(headers, rows):
         table.append(SEP.join([str(item) for item in row]) + '\n')
     return table
 
+def symbol_label(symbol):
+    """
+    Return the string label used by supported scyseq Symbol versions.
+    """
+    return getattr(symbol, 'strval', getattr(symbol, 'sval', str(symbol)))
+
 class Symbolix():
     """
     Main class for our Behavior server
@@ -132,7 +139,7 @@ class Symbolix():
                              'statistics']) + TABLE_EXT
         headers = ['Filename', 'N']
         seq = lod[0]['sequence']
-        headers.extend([symb.strval for symb in seq.alphabet])
+        headers.extend([symb.sval for symb in seq.alphabet])
 #        headers.extend(['%s_%s' % (str(item), str(nb))
 #                                   for nb, item in enumerate(seq.alphabet)])
         rows = []
@@ -199,21 +206,19 @@ class Symbolix():
         @param step: time step ahead to compute the influence.
         @rtype: Table with transition probabilities
         """
-# FIXME - FIXME - FIXME - 
-# FIXME: the direction of the influence is WRONG!!!
 #        # assume that site, code and alphabet are the same for all the sequences
         filename = '_'.join([lod[0]['sitename'], lod[0]['codename'], \
                              f'transition{step}']) + TABLE_EXT
         headers = ['Filename']
         seq = lod[0]['sequence']
-        headers.extend([f"{sfrom.strval}_{sto.strval}" \
+        headers.extend([f"{sfrom.sval}_{sto.sval}" \
                 for sfrom, sto in itertools.product(seq.alphabet, repeat=2)])
 
         rows = []
         for dat in lod:
             retlist = [dat['filename']]
             seq = dat['sequence']
-            retlist.extend(np.array(T.transition_matrix(seq, step)).flatten())
+            retlist.extend(np.array(T.transition_matrix(seq, step, smooth = None)).flatten())
             rows.append(retlist)
 
         return (filename, to_table(headers, rows))
@@ -228,8 +233,6 @@ class Symbolix():
         @param step: time step ahead to compute the influence.
         @rtype: Table with influence probabilities from first to second.
         """
-# FIXME - FIXME - FIXME - 
-# FIXME: the direction of the influence is WRONG!!!
         # assume that site, code and alphabet are the same for all the sequences
         filename = '_'.join([lod1[0]['sitename'], lod1[0]['codename'], \
                              lod2[0]['sitename'], lod2[0]['codename'], \
@@ -237,7 +240,7 @@ class Symbolix():
         headers = ['Filename']
         seq1 = lod1[0]['sequence']
         seq2 = lod2[0]['sequence']
-        headers.extend([f'{sfrom.strval}-{sto.strval}' \
+        headers.extend([f'{sfrom.sval}-{sto.sval}' \
             for sfrom, sto in itertools.product(seq1.alphabet, seq2.alphabet)])
 
         rows = []
@@ -245,7 +248,7 @@ class Symbolix():
             retlist = ['-'.join([dat1['filename'], dat2['filename']])]
             seq1 = dat1['sequence']
             seq2 = dat2['sequence']
-            arr = np.array(T.influence_matrix(seq1, seq2, step))
+            arr = np.array(T.influence_matrix(seq1, seq2, step,smooth=None))
             retlist.extend(arr.flatten())
             rows.append(retlist)
 
@@ -265,8 +268,8 @@ class Symbolix():
 
             seq1 = dat1['sequence']
             seq2 = dat2['sequence']
-            retseq = S.recode([seq1, seq2], new_alphabet=True)
-            # retseq.alphabet = ['+'.join(coding.strval) for coding in retseq.alphabet]
+            retseq = O.recode([seq1, seq2], new_alphabet=True)
+            # retseq.alphabet = ['+'.join(coding.svals) for coding in retseq.alphabet]
 
             cod1 = '-'.join([dat1['sitename'], dat1['codename']])
             cod2 = '-'.join([dat2['sitename'], dat2['codename']])
@@ -303,7 +306,7 @@ class Symbolix():
             seq = dat['sequence']
             # new_alphabet = S.Alphabet(dict([(n,s) for n, s in enumerate(alphabet)]))
             new_alphabet = S.Alphabet(alphabet)
-            newseq = S.transform(seq, correspondance, new_alphabet=new_alphabet)
+            newseq = O.transform(seq, correspondance, new_alphabet=new_alphabet)
 
             cod = '-'.join((dat['sitename'], name))
             if '.' in dat['filename']:

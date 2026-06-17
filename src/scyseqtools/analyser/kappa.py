@@ -15,7 +15,6 @@ import numpy as np
 import Pmw
 
 
-ALL_SITES_LABEL = "All"
 TABLE_EXT = ".csv"
 SEP = ";"
 
@@ -121,10 +120,7 @@ def code_names_for_sites(codes_by_site, selected_sites):
     """
     Return code names available for the selected sites.
     """
-    if ALL_SITES_LABEL in selected_sites:
-        sites = list(codes_by_site.keys())
-    else:
-        sites = [site for site in codes_by_site if site in selected_sites]
+    sites = [site for site in codes_by_site if site in selected_sites]
 
     codes = []
     for site in sites:
@@ -139,13 +135,6 @@ def site_codes_from_selection(codes_by_site, selected_sites, selected_codes):
     """
     Convert GUI site/code selections into ordered site/code pairs.
     """
-    if ALL_SITES_LABEL in selected_sites:
-        return [
-            (site, code)
-            for site, codes in codes_by_site.items()
-            for code in codes
-        ]
-
     selected_code_set = set(selected_codes)
     return [
         (site, code)
@@ -214,6 +203,8 @@ class KappaTool:
         self.selected_files = []
         self.gdata = {}
         self.codes_by_site = {}
+        self.select_all_sites_var = tkinter.BooleanVar(value=False)
+        self.select_all_codes_var = tkinter.BooleanVar(value=False)
 
         self.tab = parent.notebook.add("Kappa")
         doc_frame = tkinter.LabelFrame(self.tab, text="Kappa")
@@ -235,6 +226,10 @@ class KappaTool:
         self.site_choice.configure(listbox_selectmode="multiple",
                                    listbox_exportselection=False)
         self.site_choice.grid(column=0, row=0)
+        self.site_choice.component("listbox").bind(
+            "<<ListboxSelect>>",
+            self._on_site_selection_change,
+        )
 
         self.code_choice = Pmw.ScrolledListBox(
             select_frame,
@@ -245,24 +240,80 @@ class KappaTool:
         self.code_choice.configure(listbox_selectmode="multiple",
                                    listbox_exportselection=False)
         self.code_choice.grid(column=1, row=0)
+        self.code_choice.component("listbox").bind(
+            "<<ListboxSelect>>",
+            self._on_code_selection_change,
+        )
 
-        update_but = tkinter.Button(select_frame, text="Update codes",
-                                    command=self.update_code_choices)
-        update_but.grid(column=0, row=1, sticky=tkinter.W)
+        site_all = tkinter.Checkbutton(
+            select_frame,
+            text="Select all sites",
+            variable=self.select_all_sites_var,
+            command=self.toggle_all_sites,
+        )
+        site_all.grid(column=0, row=1, sticky=tkinter.W)
+
+        code_all = tkinter.Checkbutton(
+            select_frame,
+            text="Select all codes",
+            variable=self.select_all_codes_var,
+            command=self.toggle_all_codes,
+        )
+        code_all.grid(column=1, row=1, sticky=tkinter.W)
 
         launch_but = tkinter.Button(self.tab, text="Compute kappa",
                                     command=self.launch)
         launch_but.grid(column=0, row=2, sticky=tkinter.W)
 
-    def _select_all(self, scrolled_listbox):
+    def _set_all_selection(self, scrolled_listbox, selected):
         listbox = scrolled_listbox.component("listbox")
         listbox.selection_clear(0, tkinter.END)
-        listbox.selection_set(0, tkinter.END)
+        if selected and listbox.size():
+            listbox.selection_set(0, tkinter.END)
 
-    def _select_first(self, scrolled_listbox):
+    def _select_items(self, scrolled_listbox, items, selected_items):
         listbox = scrolled_listbox.component("listbox")
         listbox.selection_clear(0, tkinter.END)
-        listbox.selection_set(0)
+        selected_item_set = set(selected_items)
+        for index, item in enumerate(items):
+            if item in selected_item_set:
+                listbox.selection_set(index)
+
+    def _sync_select_all_sites(self):
+        selected_sites = self.site_choice.getcurselection()
+        all_selected = bool(self.codes_by_site) and (
+            len(selected_sites) == len(self.codes_by_site)
+        )
+        self.select_all_sites_var.set(all_selected)
+
+    def _sync_select_all_codes(self, codes):
+        selected_codes = self.code_choice.getcurselection()
+        all_selected = bool(codes) and len(selected_codes) == len(codes)
+        self.select_all_codes_var.set(all_selected)
+
+    def _on_site_selection_change(self, event=None):
+        self._sync_select_all_sites()
+        self.update_code_choices()
+
+    def _on_code_selection_change(self, event=None):
+        codes = code_names_for_sites(self.codes_by_site,
+                                     self.site_choice.getcurselection())
+        self._sync_select_all_codes(codes)
+
+    def toggle_all_sites(self):
+        """
+        Select or clear all sites, then refresh the relevant code list.
+        """
+        self._set_all_selection(self.site_choice,
+                                self.select_all_sites_var.get())
+        self.update_code_choices()
+
+    def toggle_all_codes(self):
+        """
+        Select or clear all currently visible codes.
+        """
+        self._set_all_selection(self.code_choice,
+                                self.select_all_codes_var.get())
 
     def update_state(self, state):
         """
@@ -273,20 +324,26 @@ class KappaTool:
         self.codes_by_site = common_codes_by_site(self.selected_files,
                                                   self.gdata)
 
-        self.site_choice.setlist([ALL_SITES_LABEL] +
-                                 list(self.codes_by_site.keys()))
-        self._select_first(self.site_choice)
+        self.site_choice.setlist(list(self.codes_by_site.keys()))
+        self.select_all_sites_var.set(bool(self.codes_by_site))
+        self.select_all_codes_var.set(bool(self.codes_by_site))
+        self._set_all_selection(self.site_choice, bool(self.codes_by_site))
         self.update_code_choices()
 
     def update_code_choices(self):
         """
         Refresh the code list from the currently selected sites.
         """
+        previously_selected_codes = self.code_choice.getcurselection()
         selected_sites = self.site_choice.getcurselection()
         codes = code_names_for_sites(self.codes_by_site, selected_sites)
         self.code_choice.setlist(codes)
-        if ALL_SITES_LABEL in selected_sites and codes:
-            self._select_all(self.code_choice)
+        if self.select_all_codes_var.get():
+            self._set_all_selection(self.code_choice, bool(codes))
+        else:
+            self._select_items(self.code_choice, codes,
+                               previously_selected_codes)
+        self._sync_select_all_codes(codes)
 
     def _selected_site_codes(self):
         selected_sites = self.site_choice.getcurselection()

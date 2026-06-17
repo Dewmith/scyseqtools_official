@@ -2,6 +2,7 @@
 A Tk client for symbolic analysis
 """
 
+from scyseqtools.analyser.kappa import KappaTool
 from scyseqtools.analyser.methods import Method
 from scyseqtools.analyser.symbolix import Symbolix
 
@@ -128,8 +129,7 @@ class Application(tkinter.Tk):
         quit_but = tkinter.Button(config_frame, text='Quit', command=self.quit)
         quit_but.grid(column=0, row=4)
 
-        self.notebook.setnaturalsize()
-
+        self.kappa_tool = KappaTool(self)
         available_meth = inspect.getmembers(Symbolix, predicate=inspect.isfunction)
         self.methods = [self.kappa_tool]
         self.methods.extend([Method(*m, self) for m in available_meth])

@@ -139,7 +139,7 @@ class Symbolix():
                              'statistics']) + TABLE_EXT
         headers = ['Filename', 'N']
         seq = lod[0]['sequence']
-        headers.extend([symb.sval for symb in seq.alphabet])
+        headers.extend([symbol_label(symb) for symb in seq.alphabet])
 #        headers.extend(['%s_%s' % (str(item), str(nb))
 #                                   for nb, item in enumerate(seq.alphabet)])
         rows = []
@@ -211,7 +211,7 @@ class Symbolix():
                              f'transition{step}']) + TABLE_EXT
         headers = ['Filename']
         seq = lod[0]['sequence']
-        headers.extend([f"{sfrom.sval}_{sto.sval}" \
+        headers.extend([f"{symbol_label(sfrom)}_{symbol_label(sto)}" \
                 for sfrom, sto in itertools.product(seq.alphabet, repeat=2)])
 
         rows = []
@@ -240,16 +240,24 @@ class Symbolix():
         headers = ['Filename']
         seq1 = lod1[0]['sequence']
         seq2 = lod2[0]['sequence']
-        headers.extend([f'{sfrom.sval}-{sto.sval}' \
+        headers.extend([f'{symbol_label(sfrom)}-{symbol_label(sto)}' \
             for sfrom, sto in itertools.product(seq1.alphabet, seq2.alphabet)])
 
         rows = []
         for dat1, dat2 in zip(lod1, lod2):
             retlist = ['-'.join([dat1['filename'], dat2['filename']])]
-            seq1 = dat1['sequence']
-            seq2 = dat2['sequence']
-            arr = np.array(T.influence_matrix(seq1, seq2, step,smooth=None))
-            retlist.extend(arr.flatten())
+            seq1 = dat1['sequence']  # source / conditioning sequence
+            seq2 = dat2['sequence']  # target / dependent sequence
+
+            # Computes: P(seq2[t + step] | seq1[t])
+            # Therefore: lod1 -> lod2
+            arr = np.asarray(T.influence_matrix(seq2, seq1, step, smooth=None))
+
+            # Row-major order matches:
+            # seq1 symbol 0 -> all seq2 symbols,
+            # seq1 symbol 1 -> all seq2 symbols, etc.
+            retlist.extend(arr.ravel(order="C"))
+
             rows.append(retlist)
 
         return (filename, to_table(headers, rows))
@@ -268,11 +276,12 @@ class Symbolix():
 
             seq1 = dat1['sequence']
             seq2 = dat2['sequence']
-            retseq = O.recode([seq1, seq2], new_alphabet=True)
-            # retseq.alphabet = ['+'.join(coding.svals) for coding in retseq.alphabet]
-
             cod1 = '-'.join([dat1['sitename'], dat1['codename']])
             cod2 = '-'.join([dat2['sitename'], dat2['codename']])
+            retseq = O.recode([seq1, seq2], new_alphabet=True,
+                               names=[cod1, cod2])
+            # retseq.alphabet = ['+'.join(coding.svals) for coding in retseq.alphabet]
+
             if '.' in dat1['filename']:
                 filename = '_'.join(\
                     (dat1['filename'].rpartition('.')[0], cod1, cod2)) + SEQ_EXT

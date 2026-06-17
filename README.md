@@ -164,14 +164,14 @@ Windows, Ubuntu, macOS Intel, and macOS Apple Silicon. Each workflow run uploads
 temporary build artifacts:
 
 ```text
-ScySeqTools-Encoder-windows-x64.zip
-ScySeqTools-Encoder-ubuntu-22.04-x64.tar.gz
-ScySeqTools-Encoder-macos-x64.zip
-ScySeqTools-Encoder-macos-arm64.zip
-ScySeqTools-Analyser-windows-x64.zip
-ScySeqTools-Analyser-ubuntu-22.04-x64.tar.gz
-ScySeqTools-Analyser-macos-x64.zip
-ScySeqTools-Analyser-macos-arm64.zip
+ScySeqTools-Encoder-windows-x64-<tag>.zip
+ScySeqTools-Encoder-ubuntu-22.04-x64-<tag>.tar.gz
+ScySeqTools-Encoder-macos-x64-<tag>.zip
+ScySeqTools-Encoder-macos-arm64-<tag>.zip
+ScySeqTools-Analyser-windows-x64-<tag>.zip
+ScySeqTools-Analyser-ubuntu-22.04-x64-<tag>.tar.gz
+ScySeqTools-Analyser-macos-x64-<tag>.zip
+ScySeqTools-Analyser-macos-arm64-<tag>.zip
 SHA256SUMS.txt
 ```
 

@@ -19,56 +19,64 @@ jobs:
         include:
           - os: windows-2022
             artifact_name: ScySeqTools-Encoder-windows-x64
-            archive_name: ScySeqTools-Encoder-windows-x64.zip
+            archive_base: ScySeqTools-Encoder-windows-x64
+            archive_extension: .zip
             spec: packaging/pyinstaller/scyseq-encoder-windows.spec
             platform: windows
             archive_source: ScySeq Encoder.exe
             requires_media_info: true
           - os: ubuntu-22.04
             artifact_name: ScySeqTools-Encoder-ubuntu-22.04-x64
-            archive_name: ScySeqTools-Encoder-ubuntu-22.04-x64.tar.gz
+            archive_base: ScySeqTools-Encoder-ubuntu-22.04-x64
+            archive_extension: .tar.gz
             spec: packaging/pyinstaller/scyseq-encoder-linux.spec
             platform: linux
             archive_source: scyseq-encoder
             requires_media_info: true
           - os: macos-15-intel
             artifact_name: ScySeqTools-Encoder-macos-x64
-            archive_name: ScySeqTools-Encoder-macos-x64.zip
+            archive_base: ScySeqTools-Encoder-macos-x64
+            archive_extension: .zip
             spec: packaging/pyinstaller/scyseq-encoder-macos.spec
             platform: macos
             archive_source: ScySeq Encoder.app
             requires_media_info: true
           - os: macos-15
             artifact_name: ScySeqTools-Encoder-macos-arm64
-            archive_name: ScySeqTools-Encoder-macos-arm64.zip
+            archive_base: ScySeqTools-Encoder-macos-arm64
+            archive_extension: .zip
             spec: packaging/pyinstaller/scyseq-encoder-macos.spec
             platform: macos
             archive_source: ScySeq Encoder.app
             requires_media_info: true
           - os: windows-2022
             artifact_name: ScySeqTools-Analyser-windows-x64
-            archive_name: ScySeqTools-Analyser-windows-x64.zip
+            archive_base: ScySeqTools-Analyser-windows-x64
+            archive_extension: .zip
             spec: packaging/pyinstaller/scyseq-analyser-windows.spec
             platform: windows
             archive_source: ScySeq Analyser.exe
             requires_media_info: false
           - os: ubuntu-22.04
             artifact_name: ScySeqTools-Analyser-ubuntu-22.04-x64
-            archive_name: ScySeqTools-Analyser-ubuntu-22.04-x64.tar.gz
+            archive_base: ScySeqTools-Analyser-ubuntu-22.04-x64
+            archive_extension: .tar.gz
             spec: packaging/pyinstaller/scyseq-analyser-linux.spec
             platform: linux
             archive_source: scyseq-analyser
             requires_media_info: false
           - os: macos-15-intel
             artifact_name: ScySeqTools-Analyser-macos-x64
-            archive_name: ScySeqTools-Analyser-macos-x64.zip
+            archive_base: ScySeqTools-Analyser-macos-x64
+            archive_extension: .zip
             spec: packaging/pyinstaller/scyseq-analyser-macos.spec
             platform: macos
             archive_source: ScySeq Analyser.app
             requires_media_info: false
           - os: macos-15
             artifact_name: ScySeqTools-Analyser-macos-arm64
-            archive_name: ScySeqTools-Analyser-macos-arm64.zip
+            archive_base: ScySeqTools-Analyser-macos-arm64
+            archive_extension: .zip
             spec: packaging/pyinstaller/scyseq-analyser-macos.spec
             platform: macos
             archive_source: ScySeq Analyser.app
@@ -111,38 +119,75 @@ jobs:
       - name: Build app
         run: pyinstaller --clean --noconfirm "${{ matrix.spec }}"
 
+      - name: Name Windows app with tag version
+        if: matrix.platform == 'windows'
+        shell: pwsh
+        run: |
+          $version = "${{ github.ref_name }}"
+          $source = "dist\${{ matrix.archive_source }}"
+          $sourceName = [System.IO.Path]::GetFileNameWithoutExtension("${{ matrix.archive_source }}")
+          $sourceExtension = [System.IO.Path]::GetExtension("${{ matrix.archive_source }}")
+          $targetName = "$sourceName $version$sourceExtension"
+          Rename-Item -LiteralPath $source -NewName $targetName
+
+      - name: Name Unix app with tag version
+        if: matrix.platform != 'windows'
+        run: |
+          version="${GITHUB_REF_NAME}"
+          source="${{ matrix.archive_source }}"
+          if [ "${{ matrix.platform }}" = "macos" ]; then
+            base="${source%.app}"
+            target="${base} ${version}.app"
+          else
+            target="${source}-${version}"
+          fi
+          mv "dist/${source}" "dist/${target}"
+
       - name: Sign macOS app (ad-hoc)
         if: matrix.platform == 'macos'
         run: |
-          codesign --force --deep --sign - "dist/${{ matrix.archive_source }}"
-          codesign --verify --deep --strict --verbose=2 "dist/${{ matrix.archive_source }}"
-          codesign --display --verbose=4 "dist/${{ matrix.archive_source }}"
+          source="${{ matrix.archive_source }}"
+          base="${source%.app}"
+          versioned_app="${base} ${GITHUB_REF_NAME}.app"
+          codesign --force --deep --sign - "dist/${versioned_app}"
+          codesign --verify --deep --strict --verbose=2 "dist/${versioned_app}"
+          codesign --display --verbose=4 "dist/${versioned_app}"
 
       - name: Archive Windows app
         if: matrix.platform == 'windows'
         shell: pwsh
         run: |
+          $version = "${{ github.ref_name }}"
+          $sourceName = [System.IO.Path]::GetFileNameWithoutExtension("${{ matrix.archive_source }}")
+          $sourceExtension = [System.IO.Path]::GetExtension("${{ matrix.archive_source }}")
+          $targetName = "$sourceName $version$sourceExtension"
+          $archiveName = "${{ matrix.archive_base }}-$version${{ matrix.archive_extension }}"
           New-Item -ItemType Directory -Force -Path release | Out-Null
-          Compress-Archive -Path "dist\${{ matrix.archive_source }}" -DestinationPath "release\${{ matrix.archive_name }}" -Force
+          Compress-Archive -Path "dist\$targetName" -DestinationPath "release\$archiveName" -Force
 
       - name: Archive Linux app
         if: matrix.platform == 'linux'
         run: |
+          version="${GITHUB_REF_NAME}"
+          target="${{ matrix.archive_source }}-${version}"
           mkdir -p release
-          tar -czf "release/${{ matrix.archive_name }}" -C dist "${{ matrix.archive_source }}"
+          tar -czf "release/${{ matrix.archive_base }}-${version}${{ matrix.archive_extension }}" -C dist "${target}"
 
       - name: Archive macOS app
         if: matrix.platform == 'macos'
         run: |
+          source="${{ matrix.archive_source }}"
+          base="${source%.app}"
+          versioned_app="${base} ${GITHUB_REF_NAME}.app"
           mkdir -p release
           cd dist
-          ditto -c -k --sequesterRsrc --keepParent "${{ matrix.archive_source }}" "../release/${{ matrix.archive_name }}"
+          ditto -c -k --sequesterRsrc --keepParent "${versioned_app}" "../release/${{ matrix.archive_base }}-${GITHUB_REF_NAME}${{ matrix.archive_extension }}"
 
       - name: Upload app artifact
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ matrix.artifact_name }}
-          path: release/${{ matrix.archive_name }}
+          name: ${{ matrix.artifact_name }}-${{ github.ref_name }}
+          path: release/${{ matrix.archive_base }}-${{ github.ref_name }}${{ matrix.archive_extension }}
           if-no-files-found: error
           retention-days: 14
 

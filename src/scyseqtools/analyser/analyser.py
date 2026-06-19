@@ -10,6 +10,7 @@ import os
 import sys
 import inspect
 import pathlib
+import copy
 
 import tkinter
 import tkinter.filedialog
@@ -41,13 +42,15 @@ def _load_codix_appstate(data_dir, file_tuple):
     Load selected Codix files and build the application state.
     """
     data = {}
+    metadata = {}
     sites = []
     codes = {}
 
     for fname in file_tuple:
 
         fid = os.path.join(data_dir, fname)
-        candidates = IO.read_codix(fid) # data only = True
+        record = IO.read_codix(fid, data_only=False)
+        candidates = record['data']
         csites = list(candidates.keys())
         ccodes = {site: list(candidates[site].keys()) for site in csites}
 
@@ -66,16 +69,22 @@ def _load_codix_appstate(data_dir, file_tuple):
             raise ValueError('Incompatible sites')
 
         data[fname] = candidates
+        metadata[fname] = {
+            key: copy.deepcopy(value)
+            for key, value in record.items()
+            if key != 'data'
+        }
 
     return {'files': list(file_tuple), 'sites': sites, 'codes': codes,
-            'data': data}
+            'data': data, 'metadata': metadata}
 
 
 def _empty_appstate():
     """
     Return an empty application state for unloaded data.
     """
-    return {'files': [], 'sites': [], 'codes': {}, 'data': {}}
+    return {'files': [], 'sites': [], 'codes': {}, 'data': {},
+            'metadata': {}}
 
 
 def _append_unique(current, additions):
@@ -177,6 +186,7 @@ class Application(tkinter.Tk):
         Pmw.initialise(self)
 
         self.data = {} # data[file][...]
+        self.metadata = {}
         self.ddir = tkinter.StringVar()
         self.ddir.set('')
         self.cwd = None
@@ -254,6 +264,7 @@ class Application(tkinter.Tk):
         """
         self.selected_files = appstate['files']
         self.data = appstate['data']
+        self.metadata = appstate['metadata']
         self.selected.setlist(self.selected_files)
         self.selected.clear_selection()
         self.available.clear_selection()

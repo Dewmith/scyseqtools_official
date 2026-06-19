@@ -4,7 +4,8 @@ build-backend = "hatchling.build"
 
 [project]
 name = "scyseqtools"
-version = "0.1.0"
+# version number is dynamically retrieved from Git tags by hatch-vcs
+dynamic = ["version"]
 description = "ScySeqTools is a suite of software: encoder and analyser"
 readme = "README.md"
 requires-python = ">=3.9"
@@ -33,14 +34,18 @@ scyseq-encoder = "scyseqtools.encoder.main:main"
 packages = ["src/scyseqtools"]
 force-include = { "src/scyseqtools/encoder/config.ini" = "scyseqtools/encoder/config.ini" }
 
+[tool.hatch.version]
+source = "vcs"
+
+[tool.hatch.build.hooks.vcs]
+version-file = "src/scyseq/_version.py"
+
 [tool.hatch.envs.default]
 features = ["dev", "docs", "build"]
 
 [tool.hatch.envs.docs]
 features = ["docs"]
 
-[tool.hatch.envs.docs.scripts]
-build = "python -m sphinx -b html docs/source docs/build/html"
 
 [tool.pytest.ini_options]
 pythonpath = ["src"]
@@ -48,3 +53,6 @@ testpaths = ["tests"]
 
 [tool.hatch.metadata]
 allow-direct-references = true
+
+[tool.hatch.envs.docs.scripts]
+build = "python -m sphinx -b html docs/source docs/build/html"

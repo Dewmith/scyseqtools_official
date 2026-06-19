@@ -71,6 +71,101 @@ def _load_codix_appstate(data_dir, file_tuple):
             'data': data}
 
 
+def _empty_appstate():
+    """
+    Return an empty application state for unloaded data.
+    """
+    return {'files': [], 'sites': [], 'codes': {}, 'data': {}}
+
+
+def _append_unique(current, additions):
+    """
+    Return current plus additions while preserving first-seen order.
+    """
+    outfiles = []
+    seen = set()
+    for fname in list(current) + list(additions):
+        if fname not in seen:
+            outfiles.append(fname)
+            seen.add(fname)
+    return outfiles
+
+
+class CheckboxFileList(tkinter.LabelFrame):
+    """
+    A scrollable list of filenames with one checkbox per row.
+    """
+
+    def __init__(self, master, label_text, width=320, height=200):
+        tkinter.LabelFrame.__init__(self, master, text=label_text)
+
+        self.items = []
+        self.variables = {}
+
+        self.canvas = tkinter.Canvas(self, width=width, height=height,
+                                     borderwidth=0, highlightthickness=0)
+        self.frame = tkinter.Frame(self.canvas)
+        self.yscroll = tkinter.Scrollbar(self, orient=tkinter.VERTICAL,
+                                         command=self.canvas.yview)
+        self.xscroll = tkinter.Scrollbar(self, orient=tkinter.HORIZONTAL,
+                                         command=self.canvas.xview)
+
+        self.canvas.configure(yscrollcommand=self.yscroll.set,
+                              xscrollcommand=self.xscroll.set)
+        self.window = self.canvas.create_window((0, 0), window=self.frame,
+                                                anchor='nw')
+
+        self.canvas.grid(row=0, column=0, sticky='nsew')
+        self.yscroll.grid(row=0, column=1, sticky='ns')
+        self.xscroll.grid(row=1, column=0, sticky='ew')
+        self.grid_rowconfigure(0, weight=1)
+        self.grid_columnconfigure(0, weight=1)
+
+        self.frame.bind('<Configure>', self._update_scrollregion)
+
+    def _update_scrollregion(self, event=None):
+        self.canvas.configure(scrollregion=self.canvas.bbox('all'))
+
+    def setlist(self, items):
+        """
+        Replace the visible filenames and clear checkbox selection.
+        """
+        for child in self.frame.winfo_children():
+            child.destroy()
+
+        self.items = list(items)
+        self.variables = {}
+
+        for row, item in enumerate(self.items):
+            variable = tkinter.BooleanVar(master=self, value=False)
+            checkbutton = tkinter.Checkbutton(self.frame, text=item,
+                                              variable=variable,
+                                              anchor='w', justify='left')
+            checkbutton.grid(row=row, column=0, sticky='w')
+            self.variables[item] = variable
+
+        self.canvas.xview_moveto(0)
+        self.canvas.yview_moveto(0)
+        self.frame.update_idletasks()
+        self._update_scrollregion()
+
+    def getcurselection(self):
+        """
+        Return filenames with checked boxes in visible order.
+        """
+        return tuple(
+            item for item in self.items
+            if self.variables[item].get()
+        )
+
+    def clear_selection(self):
+        """
+        Clear all checked boxes.
+        """
+        for variable in self.variables.values():
+            variable.set(False)
+
+
 class Application(tkinter.Tk):
     """
     The main frame for the analyzer application
@@ -85,6 +180,7 @@ class Application(tkinter.Tk):
         self.ddir = tkinter.StringVar()
         self.ddir.set('')
         self.cwd = None
+        self.selected_files = []
 
         # self.filelist = []
         filelist = []
@@ -108,24 +204,33 @@ class Application(tkinter.Tk):
         self.dir_but.grid(column=2, row=1)
 
         grp = Pmw.Group(config_frame, tag_text='Files')
-        grp.grid(row=2, column=0, columnspan=3)
-        self.available = Pmw.ScrolledListBox(grp.interior(),
-                                             # items=self.filelist,
-                                             items=filelist,
-                                             labelpos='nw',
-                                             label_text='Available files',
-                                             listbox_width=50)
-        self.available.configure(listbox_selectmode='multiple',
-                                 listbox_exportselection=False)
-        self.available.grid(row=2, column=1)
-        self.file_but = tkinter.Button(grp.interior(), text="Select file(s)",
-                                  command=self.load_file)
-        self.file_but.grid(row=2, column=2)
+        grp.grid(row=2, column=0, columnspan=3, sticky='nsew')
+        grp.interior().grid_columnconfigure(0, weight=1)
+        grp.interior().grid_columnconfigure(2, weight=1)
+        grp.interior().grid_rowconfigure(2, weight=1)
 
-        self.selected = Pmw.ScrolledText(grp.interior(),
-                               labelpos='nw',
-                               label_text='Selected files')
-        self.selected.grid(row=2, column=3)
+        self.available = CheckboxFileList(grp.interior(),
+                                          label_text='Available files',
+                                          width=320, height=300)
+        self.available.setlist(filelist)
+        self.available.grid(row=2, column=0, sticky='nsew')
+
+        button_frame = tkinter.Frame(grp.interior())
+        button_frame.grid(row=2, column=1, padx=10, sticky=tkinter.N)
+        self.file_but = tkinter.Button(button_frame, text="Select file(s)",
+                                       command=self.load_file)
+        self.file_but.grid(row=0, column=0, pady=(35, 0), sticky='ew')
+
+        self.selected = CheckboxFileList(grp.interior(),
+                                         label_text='Selected files',
+                                         width=320, height=300)
+        self.selected.grid(row=2, column=2, sticky='nsew')
+
+        remove_frame = tkinter.Frame(grp.interior())
+        remove_frame.grid(row=2, column=3, padx=10, sticky=tkinter.N)
+        self.remove_but = tkinter.Button(remove_frame, text='Remove selected',
+                                         command=self.remove_selected_files)
+        self.remove_but.grid(row=0, column=0, pady=(35, 0), sticky='ew')
 
         quit_but = tkinter.Button(config_frame, text='Quit', command=self.quit)
         quit_but.grid(column=0, row=4)
@@ -135,6 +240,31 @@ class Application(tkinter.Tk):
         self.methods = [self.kappa_tool]
         self.methods.extend([Method(*m, self) for m in available_meth])
         self._set_startup_window_size()
+
+    def _update_methods(self, appstate):
+        """
+        Push loaded-file state to every analysis tab.
+        """
+        for method in self.methods:
+            method.update_state(appstate)
+
+    def _apply_appstate(self, appstate):
+        """
+        Store loaded data and refresh file widgets and analysis tabs.
+        """
+        self.selected_files = appstate['files']
+        self.data = appstate['data']
+        self.selected.setlist(self.selected_files)
+        self.selected.clear_selection()
+        self.available.clear_selection()
+        self._update_methods(appstate)
+
+    def _clear_loaded_files(self):
+        """
+        Clear selected files, loaded data, and dependent analysis tabs.
+        """
+        self.cwd = None
+        self._apply_appstate(_empty_appstate())
 
     def _set_startup_window_size(self):
         """
@@ -170,7 +300,7 @@ class Application(tkinter.Tk):
 
         self.ddir.set(outdir)
         self.available.setlist(filelist)
-        self.selected.setvalue('')
+        self._clear_loaded_files()
 
     def load_file(self):
         """
@@ -184,12 +314,14 @@ class Application(tkinter.Tk):
                     message='Choose a data directory before selecting files.')
             return
 
-        file_tuple = self.available.getcurselection()
-        if not file_tuple:
+        selected_available = self.available.getcurselection()
+        if not selected_available:
             tkinter.messagebox.showwarning(title='No file selected',
                     message='Select at least one data file to load.')
             return
 
+        file_tuple = tuple(_append_unique(self.selected_files,
+                                          selected_available))
         try:
             appstate = _load_codix_appstate(data_dir, file_tuple)
         except Exception as exc:
@@ -206,11 +338,37 @@ class Application(tkinter.Tk):
             return
 
         self.cwd = cwd
-        self.data = appstate['data']
-        self.selected.setvalue('\n'.join(file_tuple))
+        self._apply_appstate(appstate)
 
-        for method in self.methods:
-            method.update_state(appstate)
+    def remove_selected_files(self):
+        """
+        Remove checked files from the loaded selection.
+        """
+        selected_for_removal = self.selected.getcurselection()
+        if not selected_for_removal:
+            tkinter.messagebox.showwarning(title='No selected file checked',
+                    message='Check at least one selected file to remove.')
+            return
+
+        removal_set = set(selected_for_removal)
+        remaining_files = [
+            fname for fname in self.selected_files
+            if fname not in removal_set
+        ]
+
+        if not remaining_files:
+            self._clear_loaded_files()
+            return
+
+        try:
+            appstate = _load_codix_appstate(self.ddir.get(),
+                                            tuple(remaining_files))
+        except Exception as exc:
+            tkinter.messagebox.showerror(title='Could not load data file',
+                                         message=str(exc))
+            return
+
+        self._apply_appstate(appstate)
 
 ######################################################################
 

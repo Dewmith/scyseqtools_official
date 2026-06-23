@@ -234,14 +234,25 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          tag="${GITHUB_REF_NAME}"
+          set -euo pipefail
 
-          if gh release view "$tag" >/dev/null 2>&1; then
-            echo "Release $tag already exists. Updating encoder assets..."
-            gh release upload "$tag" release-files/* --clobber
+          tag="${GITHUB_REF_NAME}"
+          repo="${GITHUB_REPOSITORY}"
+
+          echo "Repository: $repo"
+          echo "Tag: $tag"
+          echo "Release files:"
+          ls -lah release-files
+
+          if gh release view "$tag" --repo "$repo" >/dev/null 2>&1; then
+            echo "Release $tag already exists. Updating assets..."
+            gh release upload "$tag" release-files/* \
+              --repo "$repo" \
+              --clobber
           else
             echo "Creating release $tag..."
             gh release create "$tag" release-files/* \
+              --repo "$repo" \
               --verify-tag \
               --title "ScySeqTools ${tag}" \
               --notes "Automated executable builds for ScySeqTools Encoder and Analyser."

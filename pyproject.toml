@@ -10,6 +10,10 @@ description = "ScySeqTools is a suite of software: encoder and analyser"
 readme = "README.md"
 requires-python = ">=3.9"
 license = {text = "MIT"}
+classifiers = [
+  "Operating System :: Microsoft :: Windows",
+  "Operating System :: POSIX :: Linux",
+]
 
 dependencies = [
   "scyseq",

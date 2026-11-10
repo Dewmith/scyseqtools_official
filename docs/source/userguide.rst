@@ -1,9 +1,9 @@
 User Guide
 ==========
 
-ScySeqTools provides tools for coding behaviours from media and analysing the
-resulting coded data. The public commands are ``scyseq-encoder`` and
-``scyseq-analyser``.
+ScySeqTools is available for Windows and Linux. It provides tools for coding
+behaviours from media and analysing the resulting coded data. The public
+commands are ``scyseq-encoder`` and ``scyseq-analyser``.
 
 Installation
 ------------

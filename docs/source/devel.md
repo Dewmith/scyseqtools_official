@@ -1,5 +1,7 @@
 # Development
 
+ScySeqTools supports Windows and Linux.
+
 For development, [Hatch](https://hatch.pypa.io/latest/why/) is used to manage
 the virtual environment and dependencies.
 
@@ -94,7 +96,7 @@ cd docs
 ./make.bat html
 ```
 
-**On Linux/Mac:**
+**On Linux:**
 
 ```bash
 cd docs

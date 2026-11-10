@@ -1,7 +1,7 @@
 # ScySeqTools
 
-ScySeqTools is a Python toolkit for coding and analysing behaviours. It currently
-provides two command line launchers:
+ScySeqTools is a Python toolkit for coding and analysing behaviours, available
+for Windows and Linux. It currently provides two command line launchers:
 
 - `scyseq-encoder`
 - `scyseq-analyser`
@@ -14,7 +14,6 @@ provides two command line launchers:
 - `tkinter`
   - Windows: included with the standard Python installer
   - Ubuntu/Debian: `sudo apt install python3-tk`
-  - macOS: install Python from python.org if `tkinter` is missing
 
 On Windows, install 64-bit VLC from:
 
@@ -29,7 +28,7 @@ Test-Path "C:\Program Files\VideoLAN\VLC\libvlc.dll"
 ## Starter Setup
 
 Clone or download the project, then open a terminal in the project folder.
-On Windows, use PowerShell; on macOS or Linux, use your usual terminal.
+On Windows, use PowerShell; on Linux, use your usual terminal.
 
 ```sh
 cd path/to/scyseqtools
@@ -127,7 +126,6 @@ standard per-user config folder for your operating system:
 ```text
 Windows: %APPDATA%\ScySeqTools\Encoder\config.ini
 Ubuntu/Linux: ~/.config/ScySeqTools/Encoder/config.ini
-macOS: ~/Library/Application Support/ScySeqTools/Encoder/config.ini
 ```
 
 The app loads configuration in this order:
@@ -143,7 +141,6 @@ The last selected working directory is remembered in:
 ```text
 Windows: %APPDATA%\ScySeqTools\Encoder\cwdfile.ini
 Ubuntu/Linux: ~/.local/state/ScySeqTools/Encoder/cwdfile.ini
-macOS: ~/Library/Application Support/ScySeqTools/Encoder/cwdfile.ini
 ```
 
 ### Encoder Window Layout
@@ -160,18 +157,14 @@ encoder_layout = detached
 ## Download Applications
 
 GitHub Actions builds downloadable encoder and analyser applications for
-Windows, Ubuntu, macOS Intel, and macOS Apple Silicon. Each workflow run uploads
-temporary build artifacts:
+Windows and Linux (Ubuntu 22.04). Each workflow run uploads temporary build
+artifacts:
 
 ```text
 ScySeqTools-Encoder-windows-x64-<tag>.zip
 ScySeqTools-Encoder-ubuntu-22.04-x64-<tag>.tar.gz
-ScySeqTools-Encoder-macos-x64-<tag>.zip
-ScySeqTools-Encoder-macos-arm64-<tag>.zip
 ScySeqTools-Analyser-windows-x64-<tag>.zip
 ScySeqTools-Analyser-ubuntu-22.04-x64-<tag>.tar.gz
-ScySeqTools-Analyser-macos-x64-<tag>.zip
-ScySeqTools-Analyser-macos-arm64-<tag>.zip
 SHA256SUMS.txt
 ```
 
@@ -181,10 +174,6 @@ before running the encoder. On Windows, confirm this file exists:
 ```powershell
 Test-Path "C:\Program Files\VideoLAN\VLC\libvlc.dll"
 ```
-
-macOS builds are not Developer ID signed or notarized yet, so users may need to
-right-click the app and choose **Open**, or allow it from macOS Privacy &
-Security settings.
 
 ## Build Applications Locally
 
@@ -207,13 +196,6 @@ pyinstaller --clean --noconfirm packaging/pyinstaller/scyseq-analyser-windows.sp
 pyinstaller --clean --noconfirm packaging/pyinstaller/scyseq-encoder-linux.spec
 pyinstaller --clean --noconfirm packaging/pyinstaller/scyseq-analyser-linux.spec
 ```
-
-```sh
-# macOS
-pyinstaller --clean --noconfirm packaging/pyinstaller/scyseq-encoder-macos.spec
-pyinstaller --clean --noconfirm packaging/pyinstaller/scyseq-analyser-macos.spec
-```
-
 
 ## Run Tests
 
@@ -241,7 +223,7 @@ cd docs
 ./make.bat html
 ```
 
-**On Linux/Mac:**
+**On Linux:**
 ```bash
 cd docs
 make html

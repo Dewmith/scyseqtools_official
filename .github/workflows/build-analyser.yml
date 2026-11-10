@@ -1,4 +1,4 @@
-name: Build ScySeq Analyser
+name: Build ScySeqTools Analyser
 
 on:
   push:

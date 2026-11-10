@@ -13,7 +13,7 @@ sys.path.insert(0, str(SRC_DIR))
 # -- Project information -----------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
 
-project = "scyseqtools"
+project = "ScySeqTools"
 copyright = "2025, L. Pezard"
 author = "L. Pezard"
 release = "0.1"

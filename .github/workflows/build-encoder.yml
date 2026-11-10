@@ -1,4 +1,4 @@
-name: Build ScySeq Encoder
+name: Build ScySeqTools Encoder
 
 on:
   push:

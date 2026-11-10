@@ -2,9 +2,9 @@
 ScySeqTools Documentation
 =========================
 
-ScySeqTools is a Python toolkit for coding and analysing behaviours, available
-for Windows and Linux. The package currently provides two desktop-oriented
-command launchers:
+ScySeqTools provides desktop applications for coding and analysing behaviours
+on Windows and Linux. It uses `Scyseq <https://github.com/scyseq-tools/scyseq>`_
+as its symbolic sequence analysis library and provides two command launchers:
 
 * ``scyseq-encoder`` for coding media sessions.
 * ``scyseq-analyser`` for running analysis workflows on coded data.

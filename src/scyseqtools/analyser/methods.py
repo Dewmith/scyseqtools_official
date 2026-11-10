@@ -14,6 +14,7 @@ import os
 import sys
 
 from scyseqtools.analyser.parameters import Parameter
+from scyseqtools.analyser.exports import SequenceExports, TableExport
 # import utils as U
 # import symbolix
 
@@ -123,7 +124,7 @@ class Method():
 
     def launch(self):
         """
-        Launches the method of the service
+        Run the analysis and save its explicit table or sequence-export result.
         """
         in_params = {param.name: param.get() for param in self.parameters}
 
@@ -148,18 +149,16 @@ class Method():
         while not outdir:
             outdir = tkinter.filedialog.askdirectory(initialdir=initialdir,
                                                      mustexist=True)
-        if len(output) == 2:
-        # FIXME: Suppose this is a table
-            fname, table = output
-            with open(os.path.join(outdir, fname), 'w', encoding='utf-8') as datafile:
-                datafile.writelines(table)
-        else:
-        # FIXME: Suppose this is a list of sequences...
-            for index, elem in enumerate(output):
-                fname, dico_seqs = elem
-                datafile = os.path.join(outdir, fname)
+        if isinstance(output, TableExport):
+            with open(os.path.join(outdir, output.filename), 'w', encoding='utf-8') as datafile:
+                datafile.writelines(output.lines)
+        elif isinstance(output, SequenceExports):
+            for index, export in enumerate(output.files):
+                datafile = os.path.join(outdir, export.filename)
                 source_metadata = self._source_metadata(index)
-                write_codix_export(datafile, dico_seqs, source_metadata)
+                write_codix_export(datafile, export.sequences_by_site, source_metadata)
+        else:
+            raise TypeError(f'Unsupported analysis result type: {type(output).__name__}')
 
         # Not useful since either created or must exist...
 #        if outdir is not None:

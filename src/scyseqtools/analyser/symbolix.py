@@ -16,6 +16,8 @@ from scyseq import algorithmic as A
 from scyseq import stochastic as T
 from scyseq import operations as O
 
+from scyseqtools.analyser.exports import SequenceExport, SequenceExports, TableExport
+
 SEQ_EXT = '.cdx'
 TABLE_EXT = '.csv'
 SEP = ';'
@@ -52,18 +54,6 @@ Data = list[dict[str, typing.Any]]
 #                'doc': 'Name of the encoding framework'}
 #    sequence = {'type': Sequence,
 #                'doc': 'The sequence and its alphabet'}
-
-#class File(LadonType):
-class File():
-    """
-    I'm not sure this is very useful...
-    """
-    pass
-#    """
-#    A file object with a name and a data buffer
-#    """
-#    name = PORTABLE_STRING
-#    data = attachment
 
 #def get_symbolic(sequence):
 #    """
@@ -125,14 +115,14 @@ class Symbolix():
     """
     Main class for our Behavior server
     """
-    def statistics(self, lod:Data) -> File :
+    def statistics(self, lod:Data) -> TableExport :
         """
         Returns the length of each sequence and the symbols with their
         frequencies
 
         @param lod: list of data
-        @rtype: a file with a table with the length of the sequences and 
-        the frequency of each symbol.
+        @rtype: TableExport with a CSV filename and lines containing sequence
+        lengths and symbol frequencies.
         """
         # assume that site, code and alphabet are the same for all the sequences
         filename = '_'.join([lod[0]['sitename'], lod[0]['codename'], \
@@ -150,16 +140,16 @@ class Symbolix():
             retlist.extend(seq.frequency())
             rows.append(retlist)
 
-        return (filename, to_table(headers, rows))
+        return TableExport(filename, to_table(headers, rows))
 
-    def mutual_information(self, lod1:Data, lod2:Data) -> File :
+    def mutual_information(self, lod1:Data, lod2:Data) -> TableExport :
         """
         Returns the mutual information between two sequences
 
         @param lod1: First list of data
         @param lod2: Second list of data
-        @rtype: Table with mutual information between sequences in lod1 and 
-        sequences in lod2
+        @rtype: TableExport with a CSV filename and mutual information lines
+        for sequences in lod1 and lod2.
         """
 #        # assume that site, code and alphabet are the same for all the sequences
         filename = '_'.join([lod1[0]['sitename'], lod1[0]['codename'], \
@@ -175,14 +165,14 @@ class Symbolix():
             retlist.append(I.mutual_information(seq1, seq2))
             rows.append(retlist)
 
-        return (filename, to_table(headers, rows))
+        return TableExport(filename, to_table(headers, rows))
 
-    def complexity(self, lod:Data) -> File :
+    def complexity(self, lod:Data) -> TableExport :
         """
         Returns the normalized Lempel-Ziv Complexity
 
         @param lod: List of data.
-        @rtype: Table with Lempel-Ziv complexity
+        @rtype: TableExport with a CSV filename and Lempel-Ziv complexity lines.
         """
 #        # assume that site, code and alphabet are the same for all the sequences
         filename = '_'.join([lod[0]['sitename'], lod[0]['codename'], \
@@ -196,15 +186,15 @@ class Symbolix():
             retlist.append(A.lempel_ziv(seq))
             rows.append(retlist)
 
-        return (filename, to_table(headers,rows))
+        return TableExport(filename, to_table(headers, rows))
 
-    def transition_probability(self, lod:Data, step:int) -> File :
+    def transition_probability(self, lod:Data, step:int) -> TableExport :
         """
         Compute the transition matrix for a sequence for step time step ahead
 
         @param lod: List of data
         @param step: time step ahead to compute the influence.
-        @rtype: Table with transition probabilities
+        @rtype: TableExport with a CSV filename and transition probability lines.
         """
 #        # assume that site, code and alphabet are the same for all the sequences
         filename = '_'.join([lod[0]['sitename'], lod[0]['codename'], \
@@ -221,9 +211,9 @@ class Symbolix():
             retlist.extend(np.array(T.transition_matrix(seq, step, smooth = None)).flatten())
             rows.append(retlist)
 
-        return (filename, to_table(headers, rows))
+        return TableExport(filename, to_table(headers, rows))
 
-    def influence_probability(self, lod1:Data, lod2:Data, step:int) -> File :
+    def influence_probability(self, lod1:Data, lod2:Data, step:int) -> TableExport :
         """
         Computes the influence of sequence one to sequence two for certain time
         step
@@ -231,7 +221,8 @@ class Symbolix():
         @param lod1: First list of data
         @param lod2: Second list of data
         @param step: time step ahead to compute the influence.
-        @rtype: Table with influence probabilities from first to second.
+        @rtype: TableExport with a CSV filename and influence probability lines
+        from first to second.
         """
         # assume that site, code and alphabet are the same for all the sequences
         filename = '_'.join([lod1[0]['sitename'], lod1[0]['codename'], \
@@ -260,15 +251,16 @@ class Symbolix():
 
             rows.append(retlist)
 
-        return (filename, to_table(headers, rows))
+        return TableExport(filename, to_table(headers, rows))
 
-    def join(self, lod1:Data, lod2:Data) -> File :
+    def join(self, lod1:Data, lod2:Data) -> SequenceExports :
         """
         Joins two sequences
         
         @param lod1: First list of data
         @param lod2: Second list of data
-        @rtype: A list of data with symbolic sequence joined from lod1 and lod2
+        @rtype: SequenceExports with one Codix export per pair in source-file
+        order, containing the joined symbolic sequence.
         """
         retlist = []
         for dat1, dat2 in zip(lod1, lod2):
@@ -293,12 +285,12 @@ class Symbolix():
 
             #retfile = sequence_to_file(filename, sitename, codename, retseq)
             # retlist.append(retfile)
-            retlist.append((filename, {sitename: {codename: retseq}}))
+            retlist.append(SequenceExport(filename, {sitename: {codename: retseq}}))
 
-        return retlist
+        return SequenceExports(retlist)
 
     def change_code(self, lod:Data, name:str,
-                    correspondance:list[int], alphabet:list[str]) -> list[File] :
+                    correspondance:list[int], alphabet:list[str]) -> SequenceExports :
         """
         Change the code according to a correspondance given as a list of
         integers.
@@ -306,7 +298,8 @@ class Symbolix():
         @param lod: List of data
         @param correspondance: a list of integers
         @param: alphabet: a list of strings (in right order...)
-        @rtype: A list of data with symbolic sequence recoded.
+        @rtype: SequenceExports with one recoded Codix export per source record,
+        in source-file order.
         """
         retlist = []
 
@@ -326,6 +319,6 @@ class Symbolix():
 
 #            retfile = sequence_to_file(filename, dat.sitename, name, newseq)
 #            retlist.append(retfile)
-            retlist.append((filename, {dat['sitename']: {name: newseq}}))
+            retlist.append(SequenceExport(filename, {dat['sitename']: {name: newseq}}))
 
-        return retlist
+        return SequenceExports(retlist)

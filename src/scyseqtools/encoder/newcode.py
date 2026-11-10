@@ -7,6 +7,7 @@ Module / application to produce a .jod/.cod file which specifies
 import re
 import os
 import json
+import math
 import tkinter
 import tkinter.messagebox
 import tkinter.filedialog
@@ -200,65 +201,57 @@ class NewCode(tkinter.LabelFrame):
 
     def record_all(self):
         """
-        Save the complete encoding specification to a file along with an html
-        report.
+        Validate the form, then save the encoding specification and HTML report.
+
+        Report all validation errors together and keep the form open without
+        creating directories or opening the save dialog when input is invalid.
         """
-        all_specs = {'date': datetime.now().strftime('%c')}
-        all_specs.update({'version': VERSION})
-
-        pname = self.project_name.get()
-        if pname == '':
-            tkinter.messagebox.showerror('You forgot something...',
-                             'Enter the name of the project.')
-            # pass
-        else:
-            all_specs.update({"project": pname})
-
+        project_name = self.project_name.get()
         description = self.description_text.get("1.0", "end-1c")
-        if description == '':
-            tkinter.messagebox.showerror('You forgot something...',
-                             'Enter the description of the project.')
-            # pass
-        else:
-            all_specs.update({"description": description})
-
         regular = self.regular.get()
+        validation_errors = []
+
+        if not project_name.strip():
+            validation_errors.append('Enter the name of the project.')
+        if not description.strip():
+            validation_errors.append('Enter the description of the project.')
+
+        period = None
         if regular:
-            period = self.period.get()
-            if period == '':
-                tkinter.messagebox.showerror('You forgot something...',
-                                 'Enter the period of regular coding.')
-                # pass
-            else:
-                try:
-                    period = float(period)
-                except:
-                    raise ValueError
-                    tkinter.messagebox.showerror('Something went wrong...',
-                                     'Interval is wrong.')
-                    # pass
-            all_specs.update({'period': period})
-        else:
-            all_specs.update({'period': None})
+            try:
+                period = float(self.period.get())
+            except ValueError:
+                period = None
+            if period is None or not math.isfinite(period) or period <= 0:
+                validation_errors.append(
+                    'Enter a numeric, finite period greater than zero seconds.'
+                )
 
-        if len(self.codes_container) == 0:
-            tkinter.messagebox.showerror('You forgot something...',
-                             'Enter at least one code.')
-            # pass
-        else:
-            all_specs.update({'codes': self.codes_container})
+        if not self.codes_container:
+            validation_errors.append('Enter at least one code.')
+        if not self.sites_container:
+            validation_errors.append('Enter at least one recording site.')
 
-        if len(self.sites_container) == 0:
-            tkinter.messagebox.showerror('You forgot something...',
-                             'Enter at least one recording site.')
-            # pass
-        else:
-            all_specs.update({'sites': self.sites_container})
+        if validation_errors:
+            tkinter.messagebox.showerror(
+                'Invalid coding framework', '\n'.join(validation_errors)
+            )
+            return
+
+        all_specs = {
+            'date': datetime.now().strftime('%c'),
+            'version': VERSION,
+            'project': project_name,
+            'description': description,
+            'period': period,
+            'codes': self.codes_container,
+            'sites': self.sites_container,
+        }
 
         code_folder = U.ensure_subdirectory(self.application.cwd, 'data')
         filename = tkinter.filedialog.asksaveasfilename(
                                       initialdir=code_folder,
-                                      initialfile=pname+'.jod')
+                                      initialfile=project_name+'.jod')
 
         # FIXME: does not work if file already exists
         if U.is_valid_filename(filename):

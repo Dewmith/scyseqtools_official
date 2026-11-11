@@ -38,6 +38,10 @@ The encoder opens a graphical interface and asks you to choose a working
 directory. ScySeqTools expects or creates ``media`` and ``data`` folders inside
 that working directory.
 
+To exit without choosing a working directory, click **Cancel**, press **Escape**,
+or close the folder dialog. The encoder closes without saving a new directory
+or creating project folders.
+
 For a graphical version of the encoder workflow, open the
 :ref:`encoder-workflow-flowchart` on the flowcharts page.
 
@@ -118,6 +122,10 @@ Launch the analysis interface from a terminal with:
 .. code-block:: bash
 
    scyseq-analyser
+
+You can close the analyser with **Quit** on the *Configuration* tab or the
+window's close button without selecting a folder. Cancelling **Choose data
+directory** returns to the analyser and preserves the current selection.
 
 For a graphical version of loading data, choosing an analysis, and saving
 outputs, open the :ref:`analyser-workflow-flowchart` on the flowcharts page.

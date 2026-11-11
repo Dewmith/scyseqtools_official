@@ -184,6 +184,7 @@ class Application(tkinter.Tk):
     def __init__(self):
 #       Create and pack the NoteBook.
         tkinter.Tk.__init__(self)
+        self.protocol("WM_DELETE_WINDOW", self.destroy)
         Pmw.initialise(self)
 
         self.data = {} # data[file][...]
@@ -243,7 +244,7 @@ class Application(tkinter.Tk):
                                          command=self.remove_selected_files)
         self.remove_but.grid(row=0, column=0, pady=(35, 0), sticky='ew')
 
-        quit_but = tkinter.Button(config_frame, text='Quit', command=self.quit)
+        quit_but = tkinter.Button(config_frame, text='Quit', command=self.destroy)
         quit_but.grid(column=0, row=4)
 
         self.kappa_tool = KappaTool(self)
@@ -298,7 +299,8 @@ class Application(tkinter.Tk):
         """
         initialdir = "/home/zarpe/Documents/tests_scyseqtools/data"
 
-        outdir = tkinter.filedialog.askdirectory(initialdir=initialdir)
+        outdir = tkinter.filedialog.askdirectory(parent=self,
+                                                initialdir=initialdir)
         if not outdir:
             return
 

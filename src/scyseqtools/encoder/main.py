@@ -1,13 +1,10 @@
 """
 Main application module
 """
-from scyseqtools.encoder.encoder import Application, __version__
+from scyseqtools.encoder.encoder import _run_application
 
 def main():
-    app = Application()
-    app.title(\
-    f'ScySeqTools - The Swiss knife for coding behaviors - version: {__version__}')
-    app.mainloop()
+    _run_application()
 
 if __name__ == "__main__":
     main()

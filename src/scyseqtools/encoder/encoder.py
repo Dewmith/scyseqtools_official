@@ -35,6 +35,11 @@ __version__ = '0.9'
 __author__ = 'L. Pezard'
 __licence__ = 'GPL'
 
+
+class _StartupCancelled(Exception):
+    """The user cancelled the initial working-directory selection."""
+
+
 class Application(tkinter.Tk):
     """
     Main ScySeqTools application class
@@ -98,10 +103,13 @@ class Application(tkinter.Tk):
             initdir = os.path.expanduser(default_cwd)
             # print('initdir default: ', initdir)
 
-        cwd = ''
-        while cwd == '':
-            cwd = filedialog.askdirectory(title="Choose working directory",
-                                          initialdir=initdir, mustexist=True)
+        cwd = filedialog.askdirectory(parent=self,
+                                      title="Choose working directory",
+                                      initialdir=initdir, mustexist=True)
+        if not cwd:
+            self.destroy()
+            raise _StartupCancelled()
+
         with cwd_filename.open('w', encoding='utf-8') as cwdfile:
             cwdfile.write(cwd)
 
@@ -512,8 +520,17 @@ class Application(tkinter.Tk):
     def notimplemented(self):
         tkinter.messagebox.showinfo('Not implemented', 'Not implemented')
 
-if __name__ == "__main__":
-    app = Application()
+
+def _run_application():
+    """Launch the encoder, treating startup cancellation as a normal exit."""
+    try:
+        app = Application()
+    except _StartupCancelled:
+        return
     app.title(\
     f'ScySeqTools - The Swiss knife for coding behaviors - version: {__version__}')
     app.mainloop()
+
+
+if __name__ == "__main__":
+    _run_application()

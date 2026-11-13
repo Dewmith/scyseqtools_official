@@ -1,9 +1,30 @@
-# ScySeqTools
+<h1 align="center">ScySeqTools</h1>
 
-ScySeqTools helps you label behaviours observed in recordings and analyse the
-resulting data. For example, you can watch a recording, mark when someone moves
-or speaks, and then explore patterns in those observations. Here, **coding**
-means labelling observations; you do not need to write computer code to use the apps.
+<p align="center">
+  <a href="https://www.sphinx-doc.org/"><img src="https://img.shields.io/badge/docs-Sphinx-blue" alt="docs: Sphinx"></a>
+  <a href="https://docs.pytest.org/"><img src="https://img.shields.io/badge/tests-pytest-blue" alt="tests: pytest"></a>
+  <a href="https://hatch.pypa.io/latest/"><img src="https://img.shields.io/badge/project-Hatch-blue" alt="project: Hatch"></a>
+  <a href="https://docs.python.org/3/library/doctest.html"><img src="https://img.shields.io/badge/tests-doctest-blue" alt="tests: doctest"></a>
+</p>
+
+ScySeqTools provides desktop applications for researchers and observers who
+study behaviour using recordings. It helps turn recorded observations into
+structured data that can be saved, compared, and analysed to investigate
+behavioural patterns.
+
+In this context, **coding** means systematically assigning labels to observed
+behaviours. Observers use a **coding scheme**: a defined set of categories and
+rules describing what each label means and when to apply it. Clear definitions
+help different observers apply the labels consistently. Recording these labels
+over time creates a sequence of observations for analysis. This approach is
+described in the research guidelines for
+[systematic coding of observed human behaviour](https://link.springer.com/article/10.1007/s11135-024-01969-9).
+
+ScySeqTools supports this workflow through two graphical applications. The
+**Encoder** lets you define your labels and record observations while reviewing
+media. The **Analyser** works with the resulting coded sequences to summarise
+label frequencies, examine transitions and relationships between sequences, and
+assess agreement between observers. No programming is required to use the apps.
 
 **[Download the apps](https://github.com/scyseq-tools/scyseqtools/releases/latest)**
 | [For users](#for-users) | [For developers](#for-developers)
@@ -19,6 +40,11 @@ means labelling observations; you do not need to write computer code to use the 
 
 Use both apps to go from a recording to analysis results. If you already have
 coded ScySeqTools data, you can start with the Analyser.
+
+The Analyser uses **Scyseq**, the analysis package that provides the calculations
+for working with coded behaviour sequences. Visit the
+[Scyseq website](https://scyseq-tools.github.io/scyseq/) to learn more about its
+analysis methods.
 
 ### Download the apps
 
@@ -352,11 +378,3 @@ To contribute:
 2. Create a branch for your feature or bug fix.
 3. Submit a pull request with a clear description of changes.
 4. Ensure tests pass.
-
-
-### Tools used in this package
-
-[![Sphinx](https://img.shields.io/badge/docs-Sphinx-blue)](https://www.sphinx-doc.org/)
-[![pytest](https://img.shields.io/badge/tests-pytest-blue)](https://docs.pytest.org/)
-[![Hatch](https://img.shields.io/badge/project-Hatch-blue)](https://hatch.pypa.io/latest/)
-[![doctest](https://img.shields.io/badge/tests-doctest-blue)](https://docs.python.org/3/library/doctest.html)

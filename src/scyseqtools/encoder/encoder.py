@@ -7,6 +7,7 @@ We need doc
 """
 
 import os
+import webbrowser
 # import json
 #import time
 
@@ -160,15 +161,27 @@ class Application(tkinter.Tk):
             self.__make_coding_workspace()
         self.home.hide()
 
-    def help_browser(self):
-        """Calls the browser and open the documentation
-        """
-        self.notimplemented()
+    def report_issue(self):
+        self._open_project_page("/issues/new")
 
     def about_handler(self):
-        """Gives some information about ScySeqTools
-        """
-        self.notimplemented()
+        self._open_project_page("#readme")
+
+    def _open_project_page(self, destination):
+        url = "https://github.com/scyseq-tools/scyseqtools" + destination
+        try:
+            if webbrowser.open_new_tab(url):
+                return
+        except (OSError, webbrowser.Error):
+            pass
+
+        if tkinter.messagebox.askyesno(
+            "Could not open browser",
+            f"Copy this link to the clipboard so you can open it yourself?\n\n{url}",
+            parent=self,
+        ):
+            self.clipboard_clear()
+            self.clipboard_append(url)
 
     @property
     def detached_layout(self):
@@ -509,10 +522,6 @@ class Application(tkinter.Tk):
 #            #self.player_mode.set("regular")
 #            self.control.mode = "regular"
 #            # self.period_display.set(str(period))
-
-    def notimplemented(self):
-        tkinter.messagebox.showinfo('Not implemented', 'Not implemented')
-
 
 def _run_application():
     """Launch the encoder, treating startup cancellation as a normal exit."""

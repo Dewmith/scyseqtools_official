@@ -38,11 +38,11 @@ class EncoderHome(ttk.Frame):
 
 
 class ApplicationMenu(tkinter.Menu):
-    """Keep Help and About available throughout the encoder."""
+    """Keep project help and issue reporting available throughout the encoder."""
 
     def __init__(self, master):
         super().__init__(master, tearoff=0)
         help_menu = tkinter.Menu(self, tearoff=0)
         self.add_cascade(label='Help', menu=help_menu)
-        help_menu.add_command(label='Help', command=master.help_browser)
+        help_menu.add_command(label='Report issue', command=master.report_issue)
         help_menu.add_command(label='About', command=master.about_handler)

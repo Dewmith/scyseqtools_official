@@ -1,5 +1,6 @@
 import os
 import sys
+from unittest.mock import Mock
 
 import pytest
 
@@ -120,3 +121,57 @@ def test_cancel_directory_exits_before_home(launch, tmp_path, monkeypatch, capsy
         encoder._run_application()
     assert not (tmp_path / "settings" / config.CWD_FILENAME).exists()
     assert not (tmp_path / "data").exists()
+
+
+def test_help_menu_on_home_screen_and_in_session(launch, monkeypatch):
+    app = launch()
+    open_tab = Mock(return_value=True)
+    monkeypatch.setattr(encoder.webbrowser, "open_new_tab", open_tab)
+    destinations = [
+        ("Report issue", "https://github.com/scyseq-tools/scyseqtools/issues/new"),
+        ("About", "https://github.com/scyseq-tools/scyseqtools#readme"),
+    ]
+
+    def check_menu():
+        menu_bar = app.nametowidget(app.cget("menu"))
+        menu = app.nametowidget(menu_bar.entrycget("Help", "menu"))
+        assert menu.index("end") == len(destinations) - 1
+        for index, (label, url) in enumerate(destinations):
+            assert menu.entrycget(index, "label") == label
+            menu.invoke(index)
+            open_tab.assert_called_once_with(url)
+            open_tab.reset_mock()
+
+    assert app.home.winfo_viewable()
+    check_menu()
+    app.start_session()
+    app.update()
+    assert app.info.winfo_viewable()
+    check_menu()
+
+
+@pytest.mark.parametrize("error,copy_link", [
+    (None, True),
+    (encoder.webbrowser.Error("No browser available"), False),
+    (OSError("Browser launch failed"), True),
+])
+def test_help_link_browser_failure(monkeypatch, error, copy_link):
+    app = Mock()
+    open_tab = Mock(return_value=False, side_effect=error)
+    ask_copy = Mock(return_value=copy_link)
+    monkeypatch.setattr(encoder.webbrowser, "open_new_tab", open_tab)
+    monkeypatch.setattr(encoder.tkinter.messagebox, "askyesno", ask_copy)
+
+    encoder.Application._open_project_page(app, "/issues/new")
+
+    url = "https://github.com/scyseq-tools/scyseqtools/issues/new"
+    open_tab.assert_called_once_with(url)
+    ask_copy.assert_called_once()
+    assert url in ask_copy.call_args.args[1]
+    assert ask_copy.call_args.kwargs["parent"] is app
+    if copy_link:
+        app.clipboard_clear.assert_called_once_with()
+        app.clipboard_append.assert_called_once_with(url)
+    else:
+        app.clipboard_clear.assert_not_called()
+        app.clipboard_append.assert_not_called()

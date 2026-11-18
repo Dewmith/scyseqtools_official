@@ -177,7 +177,7 @@ class InfoFrame(tkinter.LabelFrame):
 
         filename = tkinter.filedialog.askopenfilename(
             parent=self, initialdir=self.application.browse_folder("data"),
-            filetypes=[("Code file", "*.cod"), ("New code", "*.jod")],
+            filetypes=[("Code definition", "*.jod"), ("Legacy code file", "*.cod")],
         )
         if not filename:
             return

@@ -1,50 +1,48 @@
-"""
-Menu for ScySeqTools encoder
-"""
+"""Home screen and Help menu for the encoder."""
+
 import tkinter
+from tkinter import font, ttk
+
+
+class EncoderHome(ttk.Frame):
+    """Choose an encoder task after selecting a working directory."""
+
+    def __init__(self, master):
+        super().__init__(master, padding=("28p", "20p"))
+        family = font.nametofont("TkDefaultFont", root=master).actual("family")
+        heading = ttk.Label(self, text="scyseqtools", font=(family, 25, "bold"))
+        heading.grid(row=0, column=0, pady=(0, "10p"))
+
+        style = ttk.Style(self)
+        style.configure("EncoderHome.TButton", font=(family, 14), padding=("12p", "6p"))
+        actions = (
+            ("Define a new code", master.new_code, "5p"),
+            ("Start a new session", master.start_session, "5p"),
+            ("Retrieve a session", master.retrieve_session, "5p"),
+        )
+        self.buttons = []
+        for row, (label, command, top_gap) in enumerate(actions, start=1):
+            button = ttk.Button(self, text=label, command=command, width=22,
+                                style="EncoderHome.TButton")
+            button.grid(row=row, column=0, sticky="ew", pady=(top_gap, 0))
+            self.buttons.append(button)
+
+    def show(self):
+        self.master.grid_anchor("center")
+        self.grid(row=0, column=0)
+        self.buttons[0].focus_set()
+
+    def hide(self):
+        self.grid_remove()
+        self.master.grid_anchor("nw")
+
 
 class ApplicationMenu(tkinter.Menu):
-    """
-    The menu with very few actions...
-    """
+    """Keep Help and About available throughout the encoder."""
 
-    def __init__(self, master=None):
-
-        tkinter.Menu.__init__(self, master)
-        # Actions Menu
-        self.action_menu = tkinter.Menu(self, tearoff=0)
-        self.add_cascade(label='Actions', menu=self.action_menu)
-
-        self.action_menu.add_command(label='Define a new code',
-                                     command=master.new_code)
-        self.action_menu.add_command(label='Start a new session',
-                                     command=master.start_session)
-        self.action_menu.add_command(label='Retrieve a session',
-                                     command=master.retrieve_session)
-        self.action_menu.add_separator()
-        self.action_menu.add_command(label='Reset',
-                                     command=master.reset,
-                                     state=tkinter.NORMAL)
-        self.action_menu.add_separator()
-        self.action_menu.add_command(label='Quit', command=master.quit_session)
-
-        # Help Menu
-        # FIXME: not implemented...
+    def __init__(self, master):
+        super().__init__(master, tearoff=0)
         help_menu = tkinter.Menu(self, tearoff=0)
         self.add_cascade(label='Help', menu=help_menu)
         help_menu.add_command(label='Help', command=master.help_browser)
         help_menu.add_command(label='About', command=master.about_handler)
-
-    def disable_actions(self):
-        """
-        When an action starts they are all disabled
-        """
-        for idx in [0,1,2,4]:
-            self.action_menu.entryconfigure(idx, state=tkinter.DISABLED)
-
-    def enable_actions(self):
-        """
-        When an action finishes they are all enabled
-        """
-        for idx in [0,1,2,4]:
-            self.action_menu.entryconfigure(idx, state=tkinter.NORMAL)

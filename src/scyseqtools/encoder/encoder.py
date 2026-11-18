@@ -22,7 +22,7 @@ import tkinter.simpledialog
 import scyseqtools.encoder.utils as U
 from scyseqtools.encoder.infoframe import InfoFrame
 from scyseqtools.encoder.playercontrol import PlayerControl
-from scyseqtools.encoder.applicationmenu import ApplicationMenu
+from scyseqtools.encoder.applicationmenu import ApplicationMenu, EncoderHome
 from scyseqtools.encoder.codingframe import FrameworkFrame
 from scyseqtools.encoder.config import (
     get_cwd_file_path,
@@ -46,6 +46,7 @@ class Application(tkinter.Tk):
     """
     def __init__(self):
         tkinter.Tk.__init__(self)
+        self.title("scyseqtools")
         self.resizable(tkinter.TRUE, tkinter.TRUE)
         # Menu
         self.menu = ApplicationMenu(master=self)
@@ -80,6 +81,8 @@ class Application(tkinter.Tk):
         # self.recorded_steps = []
         self.recorded_steps = set()
         self.coding_workspace = None
+        self.home = EncoderHome(self)
+        self.home.show()
 
 # Working directory
 
@@ -117,7 +120,7 @@ class Application(tkinter.Tk):
 
         return cwd
 
-# Menu related functions
+# Home screen and menu commands
 #-----------------------
 
     def new_code(self):
@@ -125,14 +128,13 @@ class Application(tkinter.Tk):
         """
         self.newcode = NewCode(parent=self)
         self.newcode.grid(row=1, column=1, sticky=U.sticky_all)
-        self.menu.disable_actions()
+        self.home.hide()
         self.after_idle(self.newcode.focus_first_field)
 
     def finish_new_code(self):
-        """Return to the main action menu after defining a new code.
-        """
+        """Return to the home screen after saving a code."""
         self.newcode = None
-        self.menu.enable_actions()
+        self.home.show()
 
     def start_session(self):
         """Starting a new coding session
@@ -144,7 +146,7 @@ class Application(tkinter.Tk):
         self.__grid_information_frame()
         if not self.detached_layout:
             self.__make_coding_workspace()
-        self.menu.disable_actions()
+        self.home.hide()
 
     def retrieve_session(self):
         """Resume an interrupted coding session
@@ -156,16 +158,7 @@ class Application(tkinter.Tk):
         self.__grid_information_frame()
         if not self.detached_layout:
             self.__make_coding_workspace()
-        self.menu.disable_actions()
-
-    def reset(self):
-        """Reset the file menu and all the current variables.
-        """
-        raise NotImplementedError
-#        self.info.destroy()
-#        self.framework.destroy()
-#        self.control.destroy()
-#        self.init_variables()
+        self.home.hide()
 
     def help_browser(self):
         """Calls the browser and open the documentation
@@ -527,8 +520,6 @@ def _run_application():
         app = Application()
     except _StartupCancelled:
         return
-    app.title(\
-    f'ScySeqTools - The Swiss knife for coding behaviors - version: {__version__}')
     app.mainloop()
 
 

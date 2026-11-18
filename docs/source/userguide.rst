@@ -61,7 +61,7 @@ existing project, load an existing ``.jod`` code file or retrieve an unfinished
 Define a Code
 ^^^^^^^^^^^^^
 
-Create a code file from **Actions > Define a new code**.
+On the encoder home screen, click **Define a new code**.
 
 Fill in the requested fields:
 
@@ -76,12 +76,13 @@ Fill in the requested fields:
    *Available codes*, then click **Record**.
 5. Click **Save code** and save the file in ``data/``.
 
-The encoder saves a ``.jod`` code file and an accompanying ``.html`` report.
+The encoder saves a ``.jod`` code file and an accompanying ``.html`` report,
+then returns to the home screen.
 
 New Session
 ^^^^^^^^^^^
 
-Start a new coding session from **Actions > Start a new session**.
+On the home screen, click **Start a new session**.
 
 1. Click **Load** in the *Media file* row and select a media file, normally
    from ``media/``.
@@ -98,13 +99,13 @@ To edit previous codes, click **Back** to reach the desired segment, restart the
 video if needed, correct the selected items, and click **Record**.
 
 The first **Record** prompts you to save a ``.cdx`` data file, normally in
-``data/``. Later records update that session file. To exit the session, use
-**Actions > Quit**.
+``data/``. Later records update that session file. To exit, close the main
+encoder window (the *Information* window in the detached layout).
 
 Resume Session
 ^^^^^^^^^^^^^^
 
-Resume an unfinished coding session from **Actions > Retrieve a session**.
+On the home screen, click **Retrieve a session**.
 
 1. Click **Load** in the *Data file* row.
 2. Select the desired ``.cdx`` session file from ``data/``.

@@ -103,12 +103,12 @@ In the names below, `<version>` means the release version, such as `v0.0.2`.
 1. **Choose a project folder.** Open the Encoder and select a folder for your
    work, such as `My observation project`. It uses or creates `media` and `data`
    folders inside it. Put your recordings in `media`.
-2. **Define your behaviour labels.** Choose **Actions > Define a new code**.
+2. **Define your behaviour labels.** On the encoder home screen, click **Define a new code**.
    Enter your project details, add code names and their possible labels (for
    example, `movement` with `still` and `moving`), and click **Record** for each.
    Add recording sites for the people or places you observe, select their codes,
    and click **Record**. Click **Save code** to save the `.jod` definition in `data`.
-3. **Record observations.** Choose **Actions > Start a new session**. Load a
+3. **Record observations.** Back on the home screen, click **Start a new session**. Load a
    recording and your `.jod` file, click **Start processing**, and enter your
    observer name. Play the recording, select the appropriate labels, and click
    **Record** as you work. The first record asks you to save a `.cdx` session file;
@@ -120,8 +120,8 @@ In the names below, `<version>` means the release version, such as `v0.0.2`.
    Choose an output folder when prompted. Table results are saved as `.csv`
    files, which you can open in a spreadsheet app.
 
-To continue an unfinished coding session, use **Actions > Retrieve a session**
-in the Encoder and select its `.cdx` file.
+To continue an unfinished coding session, click **Retrieve a session** on the
+encoder home screen and select its `.cdx` file.
 
 For detailed instructions and explanations of the analysis tabs, read the
 **[full user guide](https://scyseq-tools.github.io/scyseqtools/userguide.html)**.

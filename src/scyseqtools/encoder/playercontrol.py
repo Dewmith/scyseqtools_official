@@ -2,6 +2,7 @@
 Module that controls media playback for ScySeqTools encoder
 """
 
+import logging
 import time
 
 import tkinter
@@ -160,7 +161,7 @@ class PlayerControl(tkinter.LabelFrame):
         return max_time
 
     def shutdown(self):
-        """Pause playback and cancel delayed callbacks before the UI closes."""
+        """Cancel delayed callbacks and close the session's media player."""
         if self._step_after_id is not None:
             try:
                 self.after_cancel(self._step_after_id)
@@ -168,16 +169,20 @@ class PlayerControl(tkinter.LabelFrame):
                 pass
             self._step_after_id = None
 
-        try:
-            self.player.pause()
-        except Exception:
-            pass
+        if self.player is not None:
+            try:
+                self.player.close()
+            except Exception:
+                logging.getLogger(__name__).exception("Could not close the media player")
+            self.player = None
         self._state = "paused"
 
     def step_play(self, time_interval, target_time=None):
         """
         Plays for a time step 'time_interval'
         """
+        if self._step_after_id is not None:
+            return
         # if self.application.state['code_loaded'] and self.application.context != 'processing':
         #             self._root().framework.spec_frame.start_but.config(state='disabled')
         start_time = self.time
@@ -496,9 +501,7 @@ class PlayerControl(tkinter.LabelFrame):
 
     def config_buttons(self, dico):
         for b, s in dico.items():
-            b.update()
             b.config(state=s)
-            b.update()
 
     #        # FIXME: does the first test useful. Tackle this more elegantly?
     #        if self._root().data_loaded:

@@ -12,7 +12,7 @@ import webbrowser
 #import time
 
 import tkinter
-from tkinter import filedialog
+from tkinter import filedialog, ttk
 import tkinter.messagebox
 import tkinter.simpledialog
 
@@ -52,7 +52,19 @@ class Application(tkinter.Tk):
         # Menu
         self.menu = ApplicationMenu(master=self)
         self['menu'] = self.menu
-        # Variables
+        self._reset_workflow()
+        self.cwd = self.__set_cwd()
+        self.encoder_layout = get_encoder_layout(self.cwd)
+        print('Current working directory set to :', self.cwd)
+        print('Encoder layout set to :', self.encoder_layout)
+        self.protocol("WM_DELETE_WINDOW", self.quit_session)
+        self.home = EncoderHome(self)
+        self._back_button = self._add_back_button(self, columnspan=2)
+        self._back_button.grid_remove()
+        self.home.show()
+
+    def _reset_workflow(self):
+        """Start with fresh editor, playback, and observation state."""
         self.state = {'media_loaded': False,
                       'code_loaded': False,
                       'data_loaded': False}
@@ -68,22 +80,15 @@ class Application(tkinter.Tk):
                           'version': __version__} # data
 
         self._context = "standard"
+        self.newcode = None
+        self._editor_focus_job = None
         self.info = None
         self.control = None
         self.framework = None
         self._control_window = None
         self._coding_window = None
-        self.cwd = self.__set_cwd()
-        self.encoder_layout = get_encoder_layout(self.cwd)
-        print('Current working directory set to :', self.cwd)
-        print('Encoder layout set to :', self.encoder_layout)
-        self.protocol("WM_DELETE_WINDOW", self.quit_session)
-        # FIXME: this is related to coding framework.
-        # self.recorded_steps = []
         self.recorded_steps = set()
         self.coding_workspace = None
-        self.home = EncoderHome(self)
-        self.home.show()
 
 # Working directory
 
@@ -124,18 +129,54 @@ class Application(tkinter.Tk):
 # Home screen and menu commands
 #-----------------------
 
+    def _add_back_button(self, window, columnspan=1):
+        button = ttk.Button(window, text="Back to main menu",
+                            command=lambda: self._request_home(window))
+        button.grid(row=0, column=0, columnspan=columnspan, sticky="w",
+                    padx="6p", pady="4p")
+        return button
+
+    def _enter_workflow(self):
+        self.home.hide()
+        self._back_button.grid()
+
+    def _request_home(self, window):
+        has_work = any(self.state.values()) or (
+            self.newcode is not None and self.newcode.has_input()
+        )
+        if has_work and not tkinter.messagebox.askokcancel(
+            "Back to main menu",
+            "Return to the main menu? Any unsaved edits will be discarded. "
+            "Files you already saved will be kept.",
+            parent=window, default="cancel",
+        ):
+            return
+        self._return_home()
+
+    def _return_home(self):
+        self._close_workflow()
+        self._reset_workflow()
+        self._back_button.grid_remove()
+        for column in (0, 1):
+            self.grid_columnconfigure(column, weight=0)
+        for row in (1, 2):
+            self.grid_rowconfigure(row, weight=0)
+        self.title("scyseqtools")
+        self.deiconify()
+        self.lift()
+        self.home.show()
+
     def new_code(self):
         """Application for defining a new coding framework.
         """
         self.newcode = NewCode(parent=self)
         self.newcode.grid(row=1, column=1, sticky=U.sticky_all)
-        self.home.hide()
-        self.after_idle(self.newcode.focus_first_field)
+        self._enter_workflow()
+        self._editor_focus_job = self.after_idle(self.newcode.focus_first_field)
 
     def finish_new_code(self):
         """Return to the home screen after saving a code."""
-        self.newcode = None
-        self.home.show()
+        self._return_home()
 
     def start_session(self):
         """Starting a new coding session
@@ -147,7 +188,7 @@ class Application(tkinter.Tk):
         self.__grid_information_frame()
         if not self.detached_layout:
             self.__make_coding_workspace()
-        self.home.hide()
+        self._enter_workflow()
 
     def retrieve_session(self):
         """Resume an interrupted coding session
@@ -159,7 +200,7 @@ class Application(tkinter.Tk):
         self.__grid_information_frame()
         if not self.detached_layout:
             self.__make_coding_workspace()
-        self.home.hide()
+        self._enter_workflow()
 
     def report_issue(self):
         self._open_project_page("/issues/new")
@@ -195,8 +236,8 @@ class Application(tkinter.Tk):
         if self.detached_layout:
             self.title(f'ScySeqTools - Information - version: {__version__}')
             self.grid_columnconfigure(0, weight=1)
-            self.grid_rowconfigure(0, weight=1)
-            self.info.grid(row=0, column=0, sticky=U.sticky_all)
+            self.grid_rowconfigure(1, weight=1)
+            self.info.grid(row=1, column=0, sticky=U.sticky_all)
         else:
             self.info.grid(row=1, column=1, sticky=U.sticky_all)
 
@@ -215,7 +256,8 @@ class Application(tkinter.Tk):
         window.resizable(tkinter.TRUE, tkinter.TRUE)
         window.protocol("WM_DELETE_WINDOW", self.__refocus_information_window)
         window.grid_columnconfigure(0, weight=1)
-        window.grid_rowconfigure(0, weight=1)
+        window.grid_rowconfigure(1, weight=1)
+        self._add_back_button(window)
         setattr(self, attr_name, window)
         return window
 
@@ -240,17 +282,20 @@ class Application(tkinter.Tk):
             return self.__detached_window("_coding_window", "Coding framework")
         return self
 
-    def quit_session(self):
-        """
-        Close the encoder session and shut down playback cleanly.
-        """
+    def _close_workflow(self):
+        if self._editor_focus_job is not None:
+            self.after_cancel(self._editor_focus_job)
         if self.control is not None and self.control.winfo_exists():
             self.control.shutdown()
 
-        for window in (self._control_window, self._coding_window):
-            if window is not None and window.winfo_exists():
-                window.destroy()
+        for widget in (self._control_window, self._coding_window, self.info,
+                       self.control, self.coding_workspace, self.newcode):
+            if widget is not None and widget.winfo_exists():
+                widget.destroy()
 
+    def quit_session(self):
+        """Close the current workflow and exit the encoder."""
+        self._close_workflow()
         self.destroy()
 
 # Functions related to infoframe
@@ -267,7 +312,7 @@ class Application(tkinter.Tk):
             application=self,
         )
         if self.detached_layout:
-            self.control.grid(row=0, column=0, sticky=U.sticky_all)
+            self.control.grid(row=1, column=0, sticky=U.sticky_all)
             parent.lift()
         else:
             self.control.grid(row=1, column=0, sticky=U.sticky_all)
@@ -300,10 +345,7 @@ class Application(tkinter.Tk):
         coding_config = config["codingframework"]
         parent = self.__coding_parent()
 
-        if self.detached_layout:
-            parent.grid_columnconfigure(0, weight=1)
-            parent.grid_rowconfigure(0, weight=1)
-        else:
+        if not self.detached_layout:
             self.grid_columnconfigure(0, weight=1)
             self.grid_columnconfigure(1, weight=1)
             self.grid_rowconfigure(2, weight=1)
@@ -319,7 +361,7 @@ class Application(tkinter.Tk):
             font=('bold',),
         )
         if self.detached_layout:
-            self.coding_workspace.grid(row=0, column=0, sticky=U.sticky_all)
+            self.coding_workspace.grid(row=1, column=0, sticky=U.sticky_all)
             parent.lift()
         else:
             self.coding_workspace.grid(row=2, column=0, columnspan=2,
@@ -426,8 +468,6 @@ class Application(tkinter.Tk):
 
                 elif self.control.state in ['s_playing', 'c_playing']:
                     self.framework.spec_frame.start_but.config(state='disabled')
-                    # update is needed because of the timer in regular playing
-                    self.framework.spec_frame.start_but.update()
 
         else: # FIXME: raise error?
             pass

@@ -129,6 +129,13 @@ class NewCode(tkinter.LabelFrame):
                                           command = self.record_all )
         savebutton.grid(sticky=U.sticky_all)
 
+    def has_input(self):
+        """Whether returning home would discard a code definition in progress."""
+        return any((self.project_name.get(), self.description_text.get("1.0", "end-1c"),
+                    self.regular.get(), self.period.get(), self.tmpcode.get(),
+                    self.tmpitems.get(), self.tmpsite.get(), self.codes_container,
+                    self.sites_container))
+
     def focus_first_field(self):
         """
         Put keyboard focus on the first editable field in the form.
@@ -281,8 +288,8 @@ class NewCode(tkinter.LabelFrame):
             print('data: ', all_specs)
             print(f'Saved in {filename} and {html_file}')
             self.saved = True
-            self.application.finish_new_code()
             self.destroy()
+            self.application.finish_new_code()
         else:
             tkinter.messagebox.showinfo('File not saved', 'File has not been saved')
             # pass

@@ -50,12 +50,13 @@ class VlcPlayerBackend:
             ) from exc
 
         args = ["--no-xlib"]
-        instance = vlc.Instance(args)
-        self._player = instance.media_player_new()
+        self._instance = vlc.Instance(args)
+        self._player = self._instance.media_player_new()
         self.load(file_name)
 
     def load(self, file_name):
-        self._player.set_mrl(file_name)
+        media = self._player.set_mrl(file_name)
+        media.release()  # The player retains its own reference.
         # Warm VLC up so duration and audio initialization are available.
         self._player.play()
         time.sleep(1)
@@ -66,6 +67,13 @@ class VlcPlayerBackend:
 
     def pause(self):
         self._player.set_pause(do_pause=1)
+
+    def close(self):
+        try:
+            self._player.stop()
+        finally:
+            self._player.release()
+            self._instance.release()
 
     def get_time(self):
         return self._player.get_time()
@@ -119,6 +127,13 @@ class MpvPlayerBackend:
 
     def pause(self):
         self._player.pause = True
+
+    def close(self):
+        terminate = getattr(self._player, "terminate", None)
+        if callable(terminate):
+            terminate()
+        else:
+            self._player.command("quit")
 
     def get_time(self):
         time_pos = getattr(self._player, "time_pos", None)

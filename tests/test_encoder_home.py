@@ -1,10 +1,11 @@
+import json
 import os
 import sys
 from unittest.mock import Mock
 
 import pytest
 
-from scyseqtools.encoder import config, encoder
+from scyseqtools.encoder import config, encoder, playercontrol
 
 
 pytestmark = pytest.mark.skipif(
@@ -83,6 +84,8 @@ def test_saving_code_returns_to_home(launch, tmp_path, monkeypatch):
     form.record_site()
     code_file = tmp_path / "data" / "observation.jod"
     monkeypatch.setattr(encoder.filedialog, "asksaveasfilename", lambda **kw: str(code_file))
+    confirm = Mock(return_value=False)
+    monkeypatch.setattr(encoder.tkinter.messagebox, "askokcancel", confirm)
     form.record_all()
     app.update()
 
@@ -90,6 +93,114 @@ def test_saving_code_returns_to_home(launch, tmp_path, monkeypatch):
     assert not form.winfo_exists()
     assert app.home.winfo_viewable()
     assert app.focus_lastfor() == app.home.buttons[0]
+    confirm.assert_not_called()
+
+
+def back_button(window):
+    button, = window.grid_slaves(row=0, column=0)
+    assert button.cget("text") == "Back to main menu"
+    assert button.winfo_viewable()
+    return button
+
+
+@pytest.mark.parametrize("layout", ["embedded", "detached"])
+def test_back_from_unstarted_workflows(launch, layout, monkeypatch):
+    app = launch(layout)
+    directory = app.cwd
+    confirm = Mock(return_value=False)
+    choose_directory = Mock()
+    monkeypatch.setattr(encoder.tkinter.messagebox, "askokcancel", confirm)
+    monkeypatch.setattr(encoder.filedialog, "askdirectory", choose_directory)
+    for action in app.home.buttons:
+        action.invoke()
+        app.update()
+        back_button(app).invoke()
+        app.update()
+        assert app.home.winfo_viewable()
+        assert app.cwd == directory
+        assert app.title() == "scyseqtools"
+        assert app.focus_lastfor() == app.home.buttons[0]
+    confirm.assert_not_called()
+    choose_directory.assert_not_called()
+
+
+def test_back_with_unsaved_code(launch, monkeypatch):
+    app = launch()
+    app.new_code()
+    app.update()
+    app.newcode.tmpitems.set("draft")
+    confirm = Mock(side_effect=[False, True])
+    monkeypatch.setattr(encoder.tkinter.messagebox, "askokcancel", confirm)
+    back_button(app).invoke()
+    assert app.newcode.tmpitems.get() == "draft"
+    back_button(app).invoke()
+    app.update()
+    assert confirm.call_count == 2
+    assert app.home.winfo_viewable()
+    app.new_code()
+    assert not app.newcode.has_input()
+
+
+@pytest.mark.parametrize("layout,origin", [
+    ("embedded", "Information"), ("detached", "Information"),
+    ("detached", "Control"), ("detached", "Coding framework"),
+])
+@pytest.mark.parametrize("resume", [False, True], ids=["new", "retrieved"])
+def test_back_during_playback(launch, tmp_path, monkeypatch, layout, origin, resume):
+    app = launch(layout)
+    player = Mock()
+    player.get_length.return_value = 60000
+    player.get_time.return_value = 0
+    monkeypatch.setattr(playercontrol, "create_player_backend", lambda *args: player)
+    media = tmp_path / "clip.wav"
+    media.touch()
+    code = tmp_path / "scheme.jod"
+    scheme = {"filename": code.as_posix(), "codes": {"gaze": ["away"]},
+              "sites": {"Observer": ["gaze"]}, "period": 1}
+    code.write_text(json.dumps(scheme))
+    data = tmp_path / "session.cdx"
+    saved = json.dumps({"code": scheme, "media": media.as_posix(), "times": [0, 1000],
+                        "data": {"Observer": {"gaze": [0]}}, "comments": ["first"]})
+    data.write_text(saved)
+    if resume:
+        app.retrieve_session()
+        monkeypatch.setattr(encoder.U, "is_valid_media", lambda path: True)
+        app.info.read_data(str(data))
+        assert app.recorded_steps == {1}
+    else:
+        app.start_session()
+        app.make_media_player(str(media))
+        app.make_coding_frame(str(code))
+    app.update()
+    window = {"Information": app, "Control": app._control_window,
+              "Coding framework": app._coding_window}[origin]
+    windows = [w for w in (app._control_window, app._coding_window) if w]
+    control = app.control
+    control.step_play(30)
+    job = control._step_after_id
+    control.step_play(30)
+    assert control._step_after_id == job
+    confirm = Mock(side_effect=[False, True])
+    monkeypatch.setattr(encoder.tkinter.messagebox, "askokcancel", confirm)
+    button = back_button(window)
+    button.invoke()
+    assert confirm.call_args.kwargs["parent"] is window
+    assert control.state == "s_playing"
+    player.close.assert_not_called()
+    button.invoke()
+    app.update()
+    player.close.assert_called_once_with()
+    assert job not in app.tk.call("after", "info")
+    assert all(not w.winfo_exists() for w in windows)
+    assert app.home.winfo_viewable()
+    assert app.focus_lastfor() == app.home.buttons[0]
+    assert data.read_text() == saved
+    assert json.loads(code.read_text()) == scheme
+    app.start_session()
+    assert not any(app.state.values())
+    assert app.container["data"] == {} and app.container["times"] == []
+    assert not app.recorded_steps
+    assert app.context == "standard" and app.time_step is None
 
 
 @pytest.mark.parametrize("layout", ["embedded", "detached"])

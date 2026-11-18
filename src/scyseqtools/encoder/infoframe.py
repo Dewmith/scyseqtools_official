@@ -1,8 +1,8 @@
 import os
 import json
 
-# from pathlib import Path # Only used once in a comment...
-# import os.path as opath
+from pathlib import Path
+from tempfile import NamedTemporaryFile
 
 import tkinter
 import tkinter.font
@@ -97,10 +97,10 @@ class InfoFrame(tkinter.LabelFrame):
         self.code_file = tkinter.StringVar()
         self.media_file = tkinter.StringVar()
         self.data_file = tkinter.StringVar()
-        self.directory_file = tkinter.StringVar()
+        self.session_path = None
 
         # Directory
-        self.directory_label = tkinter.Label(self, text='Directory: ', background = info_bg)
+        self.directory_label = tkinter.Label(self, text='Media directory: ', background = info_bg)
         self.directory_label.grid(row=1, column=0, sticky=tkinter.W)
         self.directory_msg = tkinter.Label(self, text= 'Please load file', background=info_bg)
         self.directory_msg.configure(anchor=tkinter.W)
@@ -152,147 +152,108 @@ class InfoFrame(tkinter.LabelFrame):
 
         self.bind('<Button-3>', self.change_color)
 
-    def data_folder(self):
-        """
-        Return the working directory's data folder, creating it if needed.
-        """
-        return U.ensure_subdirectory(self.application.cwd, 'data')
+    def _load_media(self, filename):
+        self.application.make_media_player(filename)
+        path = Path(filename)
+        self.directory_msg.config(text=str(path.parent))
+        self.media_file.set(path.name)
 
     def ask_media(self):
-        """Load media file
-        """
-        is_valid = False
-        while not is_valid:
-            # We suppose that media files are in cwd/media folder
-            media_folder = os.path.join(os.path.expanduser(self.application.cwd), 'media')
-            fname = tkinter.filedialog.askopenfilename(initialdir=media_folder)
-            # self.loaded_media=False # Not Useful?
-            if U.is_valid_media(fname):
-                is_valid = True
-
-                directoryFile = '/'.join(fname.split('/')[:-2])
-                self.directory_msg.config(text = directoryFile)
-                self.media_file.set(self.set_name_of(fname))
-
-                self.application.make_media_player(fname)
-
-            else:
-                tkinter.messagebox.showinfo('Cannot load media file', \
-                                            "Cannot load %s file" % fname)
-                self.ask_media()
-
-        self.media_load.config(state='disabled')
-        self.code_load.config(state='normal')
+        filename = tkinter.filedialog.askopenfilename(
+            parent=self, initialdir=self.application.browse_folder("media")
+        )
+        if not filename:
+            return
+        if not U.is_valid_media(filename):
+            tkinter.messagebox.showinfo("Cannot load media file", filename, parent=self)
+            return
+        self._load_media(filename)
+        self.media_load.config(state="disabled")
+        self.code_load.config(state="normal")
 
     def ask_code(self):
-        """Loading files defining a coding framework.
-        Now only supports the new .jod (json) files
-        """
-        if self.application.control.state in ['c_playing', 's_playing']:
+        if self.application.control.state in ["c_playing", "s_playing"]:
             self.application.control.dopause()
 
-        # lpcomment:
-        # Finally, I don't like .jod extension. maybe go back to .cod?
-        code_folder = self.data_folder()
-        code_filetypes = [('Code file', '*.cod'), ('New code', '*.jod')]
-        fname = tkinter.filedialog.askopenfilename(filetypes= code_filetypes,
-                                            initialdir=code_folder)
-        if U.is_valid_filename(fname, ext='.jod'):
-            self.code_file.set(self.set_name_of(fname))
-            self.application.make_coding_frame(fname)
-        else:
-            tkinter.messagebox.showinfo('Cannot load code file', 'Cannot load %s file' % fname)
-            self.ask_code()
-        self.code_load.config(state='disabled')
+        filename = tkinter.filedialog.askopenfilename(
+            parent=self, initialdir=self.application.browse_folder("data"),
+            filetypes=[("Code file", "*.cod"), ("New code", "*.jod")],
+        )
+        if not filename:
+            return
+        if Path(filename).suffix.lower() != ".jod":
+            tkinter.messagebox.showinfo("Cannot load code file", filename, parent=self)
+            return
+        self.application.make_coding_frame(filename)
+        self.code_file.set(filename)
+        self.code_load.config(state="disabled")
 
     def ask_data(self):
-
-        #fname = "/home/leo/scyseqtools/scyseqtools/scyseq-encoder/new_record"
-
-        data_folder = self.data_folder()
-        data_filetypes = [('ScySeqTools data file', '*.cdx'), ('All files', '*.*')]
-
-        fname = tkinter.filedialog.askopenfilename(filetypes= data_filetypes,
-                                                   initialdir= data_folder)
-        if U.is_valid_filename(fname):
-            self.read_data(fname)
-            self.data_file.set(self.set_name_of(fname))
-            self.data_load.config(state='disabled')
-        else:
-            tkinter.messagebox.showinfo('Cannot load code file', " Media file doesn't exist or not in directory %s "  % fname)
-            self.ask_data()
-
-    def set_name_of(self, st):# return the localisation of the file after the principal directory
-        file_directory = self.directory_msg.cget('text')
-        index = st.find(file_directory)
-        return st[index+len(file_directory):]
+        filename = tkinter.filedialog.askopenfilename(
+            parent=self, initialdir=self.application.browse_folder("data"),
+            filetypes=[("ScySeqTools data file", "*.cdx"), ("All files", "*.*")],
+        )
+        if filename:
+            self.read_data(filename)
+            self.data_load.config(state="disabled")
 
     def read_data(self, fname):
-        with open(fname, 'r') as ff:
-            data = json.load(ff)
+        with open(fname, "r") as datafile:
+            data = json.load(datafile)
 
-        self.application.state['data_loaded'] = True
-        print(data)
-        # lpcomment: we do this in newcode BUT user can change the name of the
-        # code file and this is not written in the codefile
-        code = data['code']['filename']
-        media = data['media']
-        fileDirectory = '/'.join(media.split('/')[:-2])
+        self.application.state["data_loaded"] = True
+        code = data["code"]["filename"]
+        media = data["media"]
         if os.path.exists(media) and U.is_valid_media(media):
-            self.directory_msg.config(text = fileDirectory)
-            self.media_file.set(self.set_name_of(media))
-            self.application.make_media_player(media)
-        else :
-            tkinter.messagebox.showinfo('Cannot load media file', " Media file doesn't exist or not in directory %s "  % media)
-        if os.path.exists(code): # and U.is_valid_filename(code):
-            self.code_file.set(self.set_name_of(code))
+            self._load_media(media)
+        else:
+            tkinter.messagebox.showinfo("Cannot load media file", media, parent=self)
+        if os.path.exists(code):
             self.application.make_coding_frame(code)
-        else :
-            tkinter.messagebox.showinfo('Cannot load code file', " Code file doesn't exist or not in directory %s "  % code)
-# lpcomment: everything at the good place in the container
+            self.code_file.set(code)
+        else:
+            tkinter.messagebox.showinfo("Cannot load code file", code, parent=self)
+
         resume_state = normalize_resume_data(data)
-        data['times'] = resume_state['times']
-        data['comments'] = resume_state['comments']
+        data["times"] = resume_state["times"]
+        data["comments"] = resume_state["comments"]
         self.application.container.update(data)
-        self.application.recorded_steps = resume_state['recorded_steps']
-        print(self.application.recorded_steps)
-        print(self.application.container)
+        self.application.recorded_steps = resume_state["recorded_steps"]
+        self.session_path = Path(fname)
+        self.data_file.set(str(self.session_path))
 
+    def save_data(self, record, parent):
+        """Write the proposed record before committing the sample in the UI."""
+        path = self.session_path
+        if path is None:
+            folder = self.application.choose_save_folder(parent)
+            if folder is None:
+                return False
+            filename = tkinter.filedialog.asksaveasfilename(
+                parent=parent, initialdir=folder, defaultextension=".cdx",
+                filetypes=[("ScySeqTools data file", "*.cdx")],
+            )
+            if not filename:
+                return False
+            path = Path(filename if filename.lower().endswith(".cdx") else filename + ".cdx")
 
-    def save_data(self):
-        if self.data_file.get() == '':
-            self.save_as()
-        else:
-            self.save()
-
-    def save(self):
-        filename = self.directory_msg.cget("text") + self.data_file.get()
-        datafile = open(filename, 'w')
-        json.dump(self.application.container, datafile)
-        datafile.close()
-        print('Data saved in %s' % filename)
-
-    def save_as(self):
-        fname = self.data_file.get()
-        data_folder = self.data_folder()
-        filename = \
-        tkinter.filedialog.asksaveasfilename(initialdir=data_folder)
-
-        # FIXME: does not work if file already exists
-        if U.is_valid_filename(filename):
-            if not filename.endswith('.cdx'):
-                filename += '.cdx'
-            datafile = open(filename, 'w')
-            json.dump(self.application.container, datafile)
-            datafile.close()
-            print('Data saved in %s' % filename)
-            self.data_file.set(self.set_name_of(filename))
-# Do not exist any more in the menu
-#            self.menu.fileMenu.entryconfig(8, state=tkinter.NORMAL) # Save
-#            self.menu.fileMenu.entryconfig(9, state=tkinter.DISABLED) # Save as
-        else:
-            tkinter.messagebox.showinfo('File not saved', 'File has not been saved')
-            self.save_data()
+        # Replace only after the whole record has been written.
+        pending = None
+        try:
+            with NamedTemporaryFile(mode="w", encoding="utf-8", dir=path.parent,
+                                    delete=False) as datafile:
+                pending = Path(datafile.name)
+                json.dump(record, datafile)
+            pending.replace(path)
+        except OSError as error:
+            tkinter.messagebox.showerror("Cannot save session", str(error), parent=parent)
+            return False
+        finally:
+            if pending is not None:
+                pending.unlink(missing_ok=True)
+        self.session_path = path
+        self.data_file.set(str(path))
+        return True
 
     def change_color(self, event):
         colortuple = askcolor()

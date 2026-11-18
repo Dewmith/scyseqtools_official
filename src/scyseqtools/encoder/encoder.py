@@ -6,7 +6,7 @@ Main application module
 We need doc
 """
 
-import os
+from pathlib import Path
 import webbrowser
 # import json
 #import time
@@ -37,10 +37,6 @@ __author__ = 'L. Pezard'
 __licence__ = 'GPL'
 
 
-class _StartupCancelled(Exception):
-    """The user cancelled the initial working-directory selection."""
-
-
 class Application(tkinter.Tk):
     """
     Main ScySeqTools application class
@@ -53,10 +49,15 @@ class Application(tkinter.Tk):
         self.menu = ApplicationMenu(master=self)
         self['menu'] = self.menu
         self._reset_workflow()
-        self.cwd = self.__set_cwd()
-        self.encoder_layout = get_encoder_layout(self.cwd)
-        print('Current working directory set to :', self.cwd)
-        print('Encoder layout set to :', self.encoder_layout)
+        config = load_encoder_config(required_sections=("application",))
+        self._cwd_file = get_cwd_file_path(config)
+        self._default_folder = Path(config["application"]["default_cwd"]).expanduser()
+        self._last_project = None
+        if self._cwd_file.is_file():
+            saved = self._cwd_file.read_text(encoding="utf-8").rstrip("\r\n")
+            if saved and Path(saved).expanduser().is_dir():
+                self._last_project = Path(saved).expanduser()
+        self._save_project = None
         self.protocol("WM_DELETE_WINDOW", self.quit_session)
         self.home = EncoderHome(self)
         self._back_button = self._add_back_button(self, columnspan=2)
@@ -92,39 +93,37 @@ class Application(tkinter.Tk):
 
 # Working directory
 
-    def __set_cwd(self):
-        """
-        Reads initial cwd from file or from default value and set cwd to the one
-        provided through filedialog.
-     
-        Also make sure that the folder "data" is present. Create it if it is
-        lacking.
-        """
-        config = load_encoder_config(required_sections=("application",))
-        cwd_filename = get_cwd_file_path(config)
-        default_cwd = config["application"]["default_cwd"]
+    def browse_folder(self, subfolder=None):
+        """Suggest an existing directory without creating project folders."""
+        root = self._save_project or self._last_project
+        if root is None or not root.is_dir():
+            root = self._default_folder if self._default_folder.is_dir() else Path.home()
+        if subfolder and (root / subfolder).is_dir():
+            return root / subfolder
+        return root
 
-        if cwd_filename.exists():
-            with cwd_filename.open('r', encoding='utf-8') as cwdfile:
-                initdir = os.path.expanduser(cwdfile.readline())
-                # print('initdir from file: ', initdir)
-        else:
-            initdir = os.path.expanduser(default_cwd)
-            # print('initdir default: ', initdir)
-
-        cwd = filedialog.askdirectory(parent=self,
-                                      title="Choose working directory",
-                                      initialdir=initdir, mustexist=True)
-        if not cwd:
-            self.destroy()
-            raise _StartupCancelled()
-
-        with cwd_filename.open('w', encoding='utf-8') as cwdfile:
-            cwdfile.write(cwd)
-
-        U.ensure_subdirectory(cwd, "data")
-
-        return cwd
+    def choose_save_folder(self, parent):
+        """Choose the project once per launch and prepare its data directory."""
+        project = self._save_project
+        if project is None:
+            selected = filedialog.askdirectory(
+                parent=parent, title="Choose working directory",
+                initialdir=self.browse_folder(), mustexist=True,
+            )
+            if not selected:
+                return None
+            project = Path(selected)
+        try:
+            folder = project / "data"
+            folder.mkdir(exist_ok=True)
+            if self._save_project is None:
+                self._cwd_file.write_text(str(project), encoding="utf-8")
+        except OSError as error:
+            self._save_project = None
+            tkinter.messagebox.showerror("Cannot prepare save folder", str(error), parent=parent)
+            return None
+        self._save_project = project
+        return folder
 
 # Home screen and menu commands
 #-----------------------
@@ -137,6 +136,8 @@ class Application(tkinter.Tk):
         return button
 
     def _enter_workflow(self):
+        self.cwd = self._save_project or self._last_project
+        self.encoder_layout = get_encoder_layout(self.cwd)
         self.home.hide()
         self._back_button.grid()
 
@@ -169,9 +170,9 @@ class Application(tkinter.Tk):
     def new_code(self):
         """Application for defining a new coding framework.
         """
+        self._enter_workflow()
         self.newcode = NewCode(parent=self)
         self.newcode.grid(row=1, column=1, sticky=U.sticky_all)
-        self._enter_workflow()
         self._editor_focus_job = self.after_idle(self.newcode.focus_first_field)
 
     def finish_new_code(self):
@@ -181,6 +182,7 @@ class Application(tkinter.Tk):
     def start_session(self):
         """Starting a new coding session
         """
+        self._enter_workflow()
         self.info = InfoFrame(parent=self,
                               states=(tkinter.NORMAL,    # load media
                                       tkinter.DISABLED,  # load code
@@ -188,11 +190,11 @@ class Application(tkinter.Tk):
         self.__grid_information_frame()
         if not self.detached_layout:
             self.__make_coding_workspace()
-        self._enter_workflow()
 
     def retrieve_session(self):
         """Resume an interrupted coding session
         """
+        self._enter_workflow()
         self.info = InfoFrame(parent=self,
                               states=(tkinter.DISABLED, # load code
                                       tkinter.DISABLED, # load media
@@ -200,7 +202,6 @@ class Application(tkinter.Tk):
         self.__grid_information_frame()
         if not self.detached_layout:
             self.__make_coding_workspace()
-        self._enter_workflow()
 
     def report_issue(self):
         self._open_project_page("/issues/new")
@@ -317,6 +318,7 @@ class Application(tkinter.Tk):
         else:
             self.control.grid(row=1, column=0, sticky=U.sticky_all)
         self.state['media_loaded'] = True
+        self.container['media'] = Path(fname).absolute().as_posix()
 
     def make_coding_frame(self, fname):
         """
@@ -390,10 +392,6 @@ class Application(tkinter.Tk):
 
             self.container['times'] = self.control.times
             self.container['data'] = self.framework.data
-# FIXME: check this...
-            self.container['media'] = \
-            self.info.directory_msg.cget("text") + '/' + self.info.media_file.get()
-
 
             self.__time_step = 0
             print('TIME_STEP: ', self.time_step)
@@ -564,12 +562,8 @@ class Application(tkinter.Tk):
 #            # self.period_display.set(str(period))
 
 def _run_application():
-    """Launch the encoder, treating startup cancellation as a normal exit."""
-    try:
-        app = Application()
-    except _StartupCancelled:
-        return
-    app.mainloop()
+    """Launch the encoder home screen."""
+    Application().mainloop()
 
 
 if __name__ == "__main__":

@@ -1,7 +1,5 @@
 flowchart TD
-    start["Launch scyseq-encoder"] --> workdir["Choose a working directory"]
-    workdir --> folders["Use the project folders: media/ for source media and data/ for code/data files"]
-    folders --> task{"Choose an action on the scyseqtools home screen"}
+    start["Launch scyseq-encoder"] --> task{"Choose an action on the scyseqtools home screen"}
 
     task -->|Define coding scheme| code_start["Define a new code"]
     code_start --> project["Enter project name and description"]
@@ -11,18 +9,21 @@ flowchart TD
     interval --> codes["Record each code name and item list"]
     continuous --> codes
     codes --> sites["Record each recording site and select its codes"]
-    sites --> save_code["Save code in data/"]
+    sites --> save_code["Click Save code, then choose a folder and filename in Save As"]
     save_code --> code_outputs["Outputs: .jod code file and .html report"]
     code_outputs --> task
 
     task -->|Start new coding session| session_start["Start a new session"]
-    session_start --> load_media["Load media file from media/"]
-    load_media --> load_code["Load .jod code file from data/"]
+    session_start --> load_media["Load media file"]
+    load_media --> load_code["Load .jod code file"]
     load_code --> start_processing["Click Start processing and identify the coder"]
     start_processing --> play["Play or step through the media"]
     play --> choose_codes["Select one item for each displayed code"]
     choose_codes --> record["Click Record"]
-    record --> save_data["Encoder saves or updates a .cdx data file"]
+    record --> has_file{"Session already has a .cdx file?"}
+    has_file -->|No| first_save["Choose the project folder if prompted, then a filename in Save As"]
+    first_save --> save_data["Save the record to the selected .cdx file"]
+    has_file -->|Yes| save_data
     save_data --> more{"More media to code?"}
     more -->|Yes| play
     more -->|No| quit["Close the main encoder window"]
@@ -32,4 +33,4 @@ flowchart TD
     load_data --> restore["Encoder restores media, code file, comments, and recorded steps"]
     restore --> resume_processing["Click Start processing with the original coder name"]
     resume_processing --> play
-    task -->|Quit| exit_app["Close the encoder"]
+    task -->|Close window| exit_app["Exit the encoder"]

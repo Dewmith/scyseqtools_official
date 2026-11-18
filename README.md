@@ -100,19 +100,22 @@ In the names below, `<version>` means the release version, such as `v0.0.2`.
 
 ### Your first project
 
-1. **Choose a project folder.** Open the Encoder and select a folder for your
-   work, such as `My observation project`. It uses or creates `media` and `data`
-   folders inside it. Put your recordings in `media`.
+1. **Open the Encoder.** The home screen opens immediately. You can load
+   recordings from any folder. An existing `media` folder in your project is
+   suggested when browsing.
 2. **Define your behaviour labels.** On the encoder home screen, click **Define a new code**.
    Enter your project details, add code names and their possible labels (for
    example, `movement` with `still` and `moving`), and click **Record** for each.
    Add recording sites for the people or places you observe, select their codes,
-   and click **Record**. Click **Save code** to save the `.jod` definition in `data`.
+   and click **Record**. Click **Save code** to open **Save As**. Choose any
+   folder and keep or edit the suggested project name. The encoder saves the
+   `.jod` definition and its matching HTML report together in that folder.
 3. **Record observations.** Back on the home screen, click **Start a new session**. Load a
    recording and your `.jod` file, click **Start processing**, and enter your
    observer name. Play the recording, select the appropriate labels, and click
-   **Record** as you work. The first record asks you to save a `.cdx` session file;
-   save it in `data`. Later records update that file.
+   **Record** as you work. On the first record, choose a project folder if you
+   haven't selected one during this launch, then save the `.cdx` session file.
+   Later records update that file, including when you retrieve it in a future session.
 4. **Analyse your data.** Open the Analyser, click **Choose data directory**, and
    select your project's `data` folder. Select your `.cdx` files under
    **Available files**, then click **Select file(s)**. Choose an analysis tab,
@@ -144,10 +147,11 @@ The app loads configuration in this order; later settings override earlier ones:
 
 1. Bundled defaults inside the package or app.
 2. The user-editable OS config file shown above.
-3. A `config.ini` in the selected project folder, if present.
+3. A `config.ini` in the last chosen project folder, if available when you start the workflow.
 
 Use the user config file to change your defaults, or a project's `config.ini`
-to change settings for that project. The last selected project folder is
+to change settings for that project. Choosing a different folder at save time
+applies its settings when you next start a workflow. The last selected project folder is
 remembered in:
 
 ```text

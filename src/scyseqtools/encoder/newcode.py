@@ -255,44 +255,29 @@ class NewCode(tkinter.LabelFrame):
             'sites': self.sites_container,
         }
 
-        code_folder = U.ensure_subdirectory(self.application.cwd, 'data')
         filename = tkinter.filedialog.asksaveasfilename(
-                                      initialdir=code_folder,
-                                      initialfile=project_name+'.jod')
-
-        # FIXME: does not work if file already exists
-        if U.is_valid_filename(filename):
-            if not filename.endswith('.jod'):
-                filename += '.jod'
-            all_specs['filename'] = filename
-            print(all_specs)
-
-            html_report = H.to_html_report(all_specs)
-            print(html_report)
-
-#            datafile = open(filename, 'w')
-#            json.dump(all_specs, datafile)
-#            datafile.close()
-            with open(filename, 'w', encoding='utf-8') as datafile:
+            parent=self, initialdir=self.application.browse_folder(),
+            initialfile=project_name + ".jod",
+            defaultextension=".jod", filetypes=[("Code definition", "*.jod")],
+        )
+        if not filename:
+            return
+        if not filename.lower().endswith(".jod"):
+            filename += ".jod"
+        all_specs["filename"] = filename
+        html_report = H.to_html_report(all_specs)
+        try:
+            with open(filename, "w", encoding="utf-8") as datafile:
                 json.dump(all_specs, datafile)
-
-            dirname, fname = os.path.split(filename)
-            html_file = os.path.join(dirname, fname.replace('.jod', '.html'))
-
-#            htmlfile = open(html_file, 'w')
-#            htmlfile.write(html_report)
-#            htmlfile.close()
-            with open(html_file, 'w', encoding='utf-8') as htmlfile:
+            html_file = os.path.splitext(filename)[0] + ".html"
+            with open(html_file, "w", encoding="utf-8") as htmlfile:
                 htmlfile.write(html_report)
-
-            print('data: ', all_specs)
-            print(f'Saved in {filename} and {html_file}')
-            self.saved = True
-            self.destroy()
-            self.application.finish_new_code()
-        else:
-            tkinter.messagebox.showinfo('File not saved', 'File has not been saved')
-            # pass
+        except OSError as error:
+            tkinter.messagebox.showerror("Cannot save code", str(error), parent=self)
+            return
+        self.saved = True
+        self.destroy()
+        self.application.finish_new_code()
 
 class RecordedCode(tkinter.Label):
 

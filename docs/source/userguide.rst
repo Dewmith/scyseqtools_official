@@ -34,13 +34,8 @@ Launch the encoder from a terminal with:
 
    scyseq-encoder
 
-The encoder opens a graphical interface and asks you to choose a working
-directory. ScySeqTools expects or creates ``media`` and ``data`` folders inside
-that working directory.
-
-To exit without choosing a working directory, click **Cancel**, press **Escape**,
-or close the folder dialog. The encoder closes without saving a new directory
-or creating project folders.
+The encoder opens directly to the home screen. Choose a task or close the
+window to exit. You can browse for existing files immediately.
 
 For a graphical version of the encoder workflow, open the
 :ref:`encoder-workflow-flowchart` on the flowcharts page.
@@ -48,11 +43,15 @@ For a graphical version of the encoder workflow, open the
 Project Setup
 ^^^^^^^^^^^^^
 
-When starting work, choose a working directory for the project. The encoder uses
-that directory as the project root:
+The first time you record a new session during a launch, choose a project
+folder. The encoder creates its ``data/`` subfolder if needed
+and opens **Save As** there. You can save elsewhere. The project selection
+lasts until you close the encoder, including when you return to the home screen.
 
-* Put source media files in ``media/``.
-* Store code definitions, HTML reports, and coded data in ``data/``.
+The encoder suggests existing ``media/`` and ``data/`` subfolders for browsing.
+At the start of a workflow, it uses the last chosen project's ``config.ini`` if
+available. Choosing another project while saving applies its settings to the
+next workflow.
 
 For a new project, first define a code file, then start a coding session. For an
 existing project, load an existing ``.jod`` code file or retrieve an unfinished
@@ -74,9 +73,11 @@ Fill in the requested fields:
    such as ``small`` and ``large``.
 4. In *Recording sites*, enter each *Recording site*, select the relevant
    *Available codes*, then click **Record**.
-5. Click **Save code** and save the file in ``data/``.
+5. Click **Save code** to open **Save As**. Choose any folder and keep or edit
+   the suggested filename, which uses the project name. Cancelling keeps your
+   code definition open for editing.
 
-The encoder saves a ``.jod`` code file and an accompanying ``.html`` report,
+The encoder saves the ``.jod`` code file and its matching ``.html`` report together,
 then returns to the home screen.
 
 New Session
@@ -98,8 +99,10 @@ On the home screen, click **Start a new session**.
 To edit previous codes, click **Back** to reach the desired segment, restart the
 video if needed, correct the selected items, and click **Record**.
 
-The first **Record** prompts you to save a ``.cdx`` data file, normally in
-``data/``. Later records update that session file. To exit, close the main
+The first **Record** prompts you to choose a project folder if needed, then
+to save a ``.cdx`` data file. Cancelling keeps your selections and comment ready
+to retry with **Record**. Once you choose a project, retry opens **Save As**.
+Later records update the same session file. To exit, close the main
 encoder window (the *Information* window in the detached layout).
 
 Resume Session
@@ -108,12 +111,13 @@ Resume Session
 On the home screen, click **Retrieve a session**.
 
 1. Click **Load** in the *Data file* row.
-2. Select the desired ``.cdx`` session file from ``data/``.
+2. Select the desired ``.cdx`` session file wherever you saved it.
 3. Click **Start processing**.
 4. Enter the observer or coder name used for the original session.
 
 The encoder restores the media file, code file, comments, and recorded steps,
-then resumes from the last saved position.
+then resumes from the last saved position. Each new record updates the opened
+``.cdx`` file without asking for a project folder or filename.
 
 Analysis Guide
 --------------

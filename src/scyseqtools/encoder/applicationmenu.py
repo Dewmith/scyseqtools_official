@@ -5,7 +5,7 @@ from tkinter import font, ttk
 
 
 class EncoderHome(ttk.Frame):
-    """Choose an encoder task after selecting a working directory."""
+    """Choose an encoder task from the home screen."""
 
     def __init__(self, master):
         super().__init__(master, padding=("28p", "20p"))

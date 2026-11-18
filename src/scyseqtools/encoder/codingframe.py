@@ -6,6 +6,7 @@ This module deals with all the encoding procedure:
 """
 
 import json
+from pathlib import Path
 from datetime import datetime
 
 import tkinter
@@ -44,6 +45,7 @@ class FrameworkFrame(tkinter.Frame):
                        relief=relief)
 
 #FIXME: Not sure this is the best place...
+        rawcode['filename'] = Path(filename).absolute().as_posix()
         self.application.container['code'] = rawcode
 
         # variables related to player BUT ***taken from coding file***
@@ -167,65 +169,42 @@ class FrameworkFrame(tkinter.Frame):
         """
         Record a step
         """
-        panellist = self.coding_frame.panels
-        # comments = self.application.container['comments']
-        mode = self.application.control.mode
-
-        if mode == 'regular': # regular sampling
-            # First passage for checking presence of all symbols
-            tmp_symbols = [v['var'].get() for pan in panellist
-                                          for v in pan.coding.values()]
-
-            if not all([s != '-' for s in tmp_symbols]):
-                tkinter.messagebox.showinfo('Code missing', 'A code is missing')
-                return
-
-            self.config_processing_buttons('disabled')
-
-            # Second passage to record the symbols
-            if self.application.time_step not in self.application.recorded_steps :
-                # Append new symbol / comment
-                self.set_data(method='append')
-            else:
-                # Replace previous symbols / comments
-                self.set_data(method='replace')
-
-            # Since recorded_steps is a set, duplicated time_step are not taken
-            # into account.
-            self.application.recorded_steps.add(self.application.time_step)
-            self.application.container['data'] = self.data
-            self.application.container['comments'] = self.coding_comments
-            print(self.application.container)
-
-            self.application.info.save_data()
-            self.application.context = 'processing'
-
-        else: # continuous coding
+        if self.application.control.mode != "regular":
             raise NotImplementedError
 
-    def set_data(self, method):
-        panellist = self.coding_frame.panels
-        time_step = self.application.time_step
-        for pan in panellist:
-            for cname in pan.coding.keys():
-                symbol = pan.coding[cname]['var'].get()
-                intval = self.encoding[pan.name][cname].index(symbol)
-                if method == "append":
-                    # Append new symbol
-                    self.data[pan.name][cname].append(intval)
-                elif method == "replace":
-                    # Replace previous symbols
-                    self.data[pan.name][cname][time_step-1] = intval
-                else: # raise error?
-                    pass
+        panels = self.coding_frame.panels
+        if any(v["var"].get() == "-" for pan in panels for v in pan.coding.values()):
+            tkinter.messagebox.showinfo("Code missing", "A code is missing")
+            return
 
-        # deal with coding comments
-        local_comment = self.coding_frame.comment.get()
-        if method == "append":
-            self.coding_comments.append(local_comment)
-        elif method == "replace":
-            self.coding_comments[time_step-1] = local_comment
+        step = self.application.time_step
 
+        def with_sample(sequence, value):
+            updated = sequence.copy()
+            if step in self.application.recorded_steps:
+                updated[step - 1] = value
+            else:
+                updated.append(value)
+            return updated
+
+        data = self.data.copy()
+        for pan in panels:
+            data[pan.name] = self.data[pan.name].copy()
+            for name, widgets in pan.coding.items():
+                symbol = widgets["var"].get()
+                value = self.encoding[pan.name][name].index(symbol)
+                data[pan.name][name] = with_sample(self.data[pan.name][name], value)
+        comments = with_sample(self.coding_comments, self.coding_frame.comment.get())
+        record = dict(self.application.container, data=data, comments=comments)
+        if not self.application.info.save_data(record, self.winfo_toplevel()):
+            return
+
+        self.data = data
+        self.coding_comments = comments
+        self.application.container.update(data=data, comments=comments)
+        self.application.recorded_steps.add(step)
+        self.config_processing_buttons("disabled")
+        self.application.context = "processing"
 
     def change_color(self, event):
         colortuple = askcolor()

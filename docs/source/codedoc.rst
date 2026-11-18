@@ -1,14 +1,22 @@
-Code documentation
-==================
+Python API Reference
+====================
 
 Encoder
 -------
 
-File list:
+Launcher
+^^^^^^^^
+.. automodule:: scyseqtools.encoder.main
+   :members: main
+   :undoc-members:
 
-applicationmenu.py  codingframe.py   encoder.py   htmlreport.py
-ib.py               infoframe.py     newcode.py   playerbackends.py
-playercontrol.py    utils.py         config.py    __init__.py
+Application
+^^^^^^^^^^^
+.. py:module:: scyseqtools.encoder.encoder
+
+.. autoclass:: Application
+   :members:
+   :undoc-members:
 
 ApplicationMenu
 ^^^^^^^^^^^^^^^
@@ -64,13 +72,20 @@ Utils
 Analyser
 --------
 
-File list:
-
-analyser.py  kappa.py  methods.py  parameters.py  symbolix.py  utils.py  __init__.py
+Launcher
+^^^^^^^^
+.. automodule:: scyseqtools.analyser.main
+   :members: main
+   :undoc-members:
 
 Analyser
 ^^^^^^^^
 .. automodule:: scyseqtools.analyser.analyser
+   :members:
+
+Exports
+^^^^^^^
+.. automodule:: scyseqtools.analyser.exports
    :members:
 
 Kappa
@@ -91,6 +106,11 @@ Parameters
 Symbolix
 ^^^^^^^^
 .. automodule:: scyseqtools.analyser.symbolix
+   :members:
+
+Synchronization
+^^^^^^^^^^^^^^^
+.. automodule:: scyseqtools.analyser.synchronization
    :members:
 
 Utils

@@ -1,38 +1,31 @@
 User Guide
 ==========
 
-ScySeqTools is available for Windows and Linux. It provides tools for coding
-behaviours from media and analysing the resulting coded data. The public
-commands are ``scyseq-encoder`` and ``scyseq-analyser``.
+The Encoder lets you apply labels to behaviours as you watch a recording.
+A coding scheme defines what each label means and when observers should use
+it. For guidance on designing a scheme, see the research guidelines for
+`systematic coding of observed human behaviour <https://link.springer.com/article/10.1007/s11135-024-01969-9>`_.
+The Analyser uses the `Scyseq library <https://scyseq-tools.github.io/scyseq/>`_
+to analyse the resulting sequences.
 
 Installation
 ------------
 
-The common requirements are `Python <https://www.python.org>`_ and
-`VLC <https://www.videolan.org/vlc/>`_. VLC is required by the encoder through
-``python-vlc``.
+For the Windows and Ubuntu desktop apps, follow the
+`download and launch instructions <https://github.com/scyseq-tools/scyseqtools#download-and-open-an-app>`_.
+The downloads include Python. The Encoder also needs 64-bit VLC on Windows,
+or VLC and the MediaInfo library on Ubuntu.
 
-Install ScySeqTools with:
+If you use a Python environment with Tk support, you can install both apps with:
 
 .. code-block:: bash
 
    python -m pip install scyseqtools
 
-For local development from a cloned repository, install the project in editable
-mode instead:
-
-.. code-block:: bash
-
-   python -m pip install -e .
-
 Encoder Guide
 -------------
 
-Launch the encoder from a terminal with:
-
-.. code-block:: bash
-
-   scyseq-encoder
+Open the extracted Encoder app. For a Python installation, run ``scyseq-encoder``.
 
 The encoder opens directly to the home screen. Choose a task or close the
 window to exit. You can browse for existing files immediately.
@@ -49,9 +42,6 @@ and opens **Save As** there. You can save elsewhere. The project selection
 lasts until you close the encoder, including when you return to the home screen.
 
 The encoder suggests existing ``media/`` and ``data/`` subfolders for browsing.
-At the start of a workflow, it uses the last chosen project's ``config.ini`` if
-available. Choosing another project while saving applies its settings to the
-next workflow.
 
 For a new project, first define a code file, then start a coding session. For an
 existing project, load an existing ``.jod`` code file or retrieve an unfinished
@@ -119,14 +109,47 @@ The encoder restores the media file, code file, comments, and recorded steps,
 then resumes from the last saved position. Each new record updates the opened
 ``.cdx`` file without asking for a project folder or filename.
 
+.. _encoder-settings:
+
+Encoder Configuration and Window Layout
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+On first run, the Encoder creates a personal ``config.ini``. A separate
+``cwdfile.ini`` remembers the last project folder. The default locations are:
+
+.. list-table::
+   :header-rows: 1
+
+   * - System
+     - Personal settings
+     - Last project folder
+   * - Windows
+     - ``%APPDATA%\ScySeqTools\Encoder\config.ini``
+     - ``%APPDATA%\ScySeqTools\Encoder\cwdfile.ini``
+   * - Ubuntu/Linux
+     - ``~/.config/ScySeqTools/Encoder/config.ini``
+     - ``~/.local/state/ScySeqTools/Encoder/cwdfile.ini``
+
+The Encoder starts with its bundled defaults, then applies your personal
+settings. When you start a workflow, any settings in the last project's
+``config.ini`` take precedence. If you choose a different project folder while
+saving, its settings take effect when you start the next workflow.
+
+The bundled layout opens separate Information, Control, and Coding framework
+windows. To use a single window, set ``encoder_layout`` in the ``[application]``
+section of your personal or project ``config.ini``:
+
+.. code-block:: ini
+
+   [application]
+   encoder_layout = embedded
+
+Set ``encoder_layout = detached`` to use separate windows again.
+
 Analysis Guide
 --------------
 
-Launch the analysis interface from a terminal with:
-
-.. code-block:: bash
-
-   scyseq-analyser
+Open the extracted Analyser app. For a Python installation, run ``scyseq-analyser``.
 
 You can close the analyser with **Quit** on the *Configuration* tab or the
 window's close button without selecting a folder. Cancelling **Choose data
@@ -160,7 +183,8 @@ Use these tabs according to the output you need:
   codes, use **Update codes** if you change the site selection, then click
   **Compute kappa**. Results are written to ``kappa.csv``.
 * **Statistics** summarizes sequence length and symbol frequencies for one
-  selected site/code sequence.
+  selected site/code sequence. Highlight a site, click **Select** to show its
+  codes, choose a code, and click **Launch**.
 * **Mutual Information** computes mutual information between two selected
   sequences.
 * **Complexity** computes normalized Lempel-Ziv complexity for one selected

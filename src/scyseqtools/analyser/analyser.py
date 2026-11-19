@@ -299,7 +299,7 @@ class Application(tkinter.Tk):
 
     def get_directory(self):
         """
-        returns the selected directory
+        Choose a data directory and list its CDX files.
         """
         initialdir = "/home/zarpe/Documents/tests_scyseqtools/data"
 
@@ -308,10 +308,12 @@ class Application(tkinter.Tk):
         if not outdir:
             return
 
-        #self.filelist = os.listdir(self.ddir.get())
-        # self.available.setlist(self.filelist)
         try:
-            filelist = os.listdir(outdir)
+            with os.scandir(outdir) as entries:
+                filelist = [
+                    entry.name for entry in entries
+                    if entry.name.lower().endswith('.cdx') and entry.is_file()
+                ]
         except OSError as exc:
             tkinter.messagebox.showerror(title='Could not list directory',
                                          message=str(exc))

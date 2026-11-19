@@ -1,11 +1,37 @@
 import os
 import sys
+from tkinter import filedialog
 from unittest.mock import Mock, call
 
 import pytest
 
 from scyseqtools import applicationmenu
 from scyseqtools.analyser.analyser import Application
+
+
+def test_get_directory_lists_only_cdx_files(monkeypatch, tmp_path):
+    mixed_dir = tmp_path / "mixed"
+    mixed_dir.mkdir()
+    for name in ("first.cdx", "second.CDX", "report.html", "original.jod"):
+        (mixed_dir / name).touch()
+    nested_dir = mixed_dir / "folder.cdx"
+    nested_dir.mkdir()
+    (nested_dir / "nested.cdx").touch()
+
+    no_cdx_dir = tmp_path / "no_cdx"
+    no_cdx_dir.mkdir()
+    (no_cdx_dir / "report.html").touch()
+
+    choose_directory = Mock(side_effect=[str(mixed_dir), str(no_cdx_dir)])
+    monkeypatch.setattr(filedialog, "askdirectory", choose_directory)
+    app = Mock(spec=["ddir", "available", "_clear_loaded_files"])
+
+    Application.get_directory(app)
+    (visible_files,), _ = app.available.setlist.call_args
+    assert sorted(visible_files) == ["first.cdx", "second.CDX"]
+
+    Application.get_directory(app)
+    app.available.setlist.assert_called_with([])
 
 
 @pytest.mark.skipif(

@@ -185,9 +185,10 @@ Analysis Tabs
 
 Use these tabs according to the output you need:
 
-* **Kappa** computes Cohen kappa between selected file pairs. Select sites and
-  codes, use **Update codes** if you change the site selection, then click
-  **Compute kappa**. Results are written to ``kappa.csv``.
+* **Kappa** computes agreement for each selected file pair, site, and code.
+  Select the sites and codes, then click **Compute kappa**. By default the
+  tab compares equal-length sequences by position and exports the usual
+  wide CSV table.
 * **Statistics** summarizes sequence length and symbol frequencies for one
   selected site/code sequence. Highlight a site, click **Select** to show its
   codes, choose a code, and click **Launch**.
@@ -206,6 +207,63 @@ Use these tabs according to the output you need:
 Table-style analyses save ``.csv`` files. Recoding analyses such as **Join**
 and **Change Code** save ``.cdx`` files that can be reused in later analyser
 workflows.
+
+Time-aligned Cohen's kappa
+^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Choose **Enable time-aligned Cohen's kappa** when both observers annotated
+the same recording using the same clock origin. Each CDX label describes the
+interval from its start timestamp up to the next boundary. A stream with
+``N`` labels requires ``N + 1`` finite, strictly increasing timestamps in
+milliseconds. The two streams can have different lengths and sampling grids.
+
+Strict kappa uses the intersection of the two observation windows on the
+original clock. Within that window each label pair contributes its duration
+to a contingency table. Observed agreement is the diagonal duration divided
+by the compared duration. Expected agreement is the sum, over labels, of
+the products of the two observers' proportions of time in that label.
+Kappa is (observed − expected) / (1 − expected). An empty intersection or
+expected agreement of one yields **N/A** and an explanation.
+
+**Timestamp tolerance (ms)** defaults to zero. A positive value requests
+SCYSEQ's boundary-tolerance variant alongside the strict result. Tolerance
+is the maximum allowed difference between matched annotation boundaries.
+Clock synchronization is a separate operation.
+
+#. Merge consecutive identical labels into behavioural runs for transition
+   detection. For each genuine transition inside the shared window, find
+   transitions with the same before and after labels within the tolerance,
+   including its upper limit.
+#. Credit only mutually unique, ordered pairs. Ambiguous, crossing, or
+   overlapping candidate spans keep their strict scores. The span between
+   a matched pair must contain exactly those two changes. Recording-window
+   boundaries and intervals containing additional changes receive no credit.
+#. In a copy of the duration table, transfer the disagreement between the
+   paired boundaries equally to the diagonal cells of the preceding and
+   following behaviours. Recalculate observed and expected agreement using
+   this adjusted table. This preserves total duration and both source files.
+
+For example, on a four-second recording both observers change from silent to
+speaking, one at 2000 ms and the other at 2080 ms. Strict kappa is 0.960.
+With a 100 ms tolerance, 80 ms receives credit (40 ms per diagonal cell) and
+adjusted kappa is 1. With the second boundary at 2120 ms, strict and adjusted
+kappa are both 0.940 and credited disagreement is zero.
+
+A nonzero constant translation of either the entire sample grid or the whole
+matching sequence of at least two behavioural transitions flags a possible
+clock offset. A later observation window can produce the same pattern.
+The tab retains strict kappa and withholds adjustment for that comparison.
+A separate advisory appears when tolerance reaches half the shortest original
+run intersecting the window. This conservative heuristic flags settings at
+which brief events deserve closer inspection.
+
+The results table and semicolon-delimited ``*_time_aligned_<tolerance>ms.csv``
+export show one row per pair, site, and code. Inspect the shared start, end,
+compared duration, strict disagreement, credited duration, and warnings
+alongside the scores. Subtract credited duration from strict disagreement
+to obtain remaining disagreement. For background on time-based and event-based
+agreement, see `Bakeman, Quera & Gnisci (2009)
+<https://doi.org/10.3758/BRM.41.1.137>`_.
 
 
 Practical Tips

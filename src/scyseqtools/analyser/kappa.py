@@ -9,10 +9,14 @@ import os
 import pathlib
 import tkinter
 import tkinter.filedialog
+import tkinter.font
 import tkinter.messagebox
+from tkinter import ttk
 
 import numpy as np
 import Pmw
+
+from scyseqtools.analyser.timed_kappa import Timeline, parse_tolerance, time_agreement
 
 
 TABLE_EXT = ".csv"
@@ -154,15 +158,16 @@ def _get_sequence(data, filename, site, code):
         ) from None
 
 
-def build_kappa_table(files, data, site_codes):
-    """
-    Build the wide kappa table shown by the analyser.
-    """
+def _validate_selection(files, site_codes):
     if len(files) < 2:
         raise ValueError("Select at least two files to compute kappa.")
     if not site_codes:
         raise ValueError("Select at least one site/code for kappa.")
 
+
+def build_kappa_table(files, data, site_codes):
+    """Build the wide, sequence-based kappa table."""
+    _validate_selection(files, site_codes)
     headers = ["comparison"]
     headers.extend([f"K {site}-{code}" for site, code in site_codes])
     rows = []
@@ -179,6 +184,44 @@ def build_kappa_table(files, data, site_codes):
 
         rows.append(row)
 
+    return headers, rows
+
+
+def build_time_kappa_table(files, data, metadata, site_codes, tolerance):
+    """Build one duration-weighted result per pair and selected stream."""
+    _validate_selection(files, site_codes)
+    tolerance = parse_tolerance(tolerance)
+    headers = ["File A", "File B", "Site", "Code", "Tolerance (ms)", "Start (ms)",
+               "End (ms)", "Compared (ms)", "Strict kappa"]
+    if tolerance:
+        headers.append("Adjusted kappa")
+    headers.extend(["Strict disagreement (ms)", "Credited disagreement (ms)", "Warning"])
+
+    timelines = {}
+    alphabets = {}
+    for site, code in site_codes:
+        for filename in files:
+            seq = _get_sequence(data, filename, site, code)
+            alphabet = _alphabet_labels(seq)
+            if alphabet and alphabets.setdefault((site, code), alphabet) != alphabet:
+                raise ValueError(f"{filename}, {site}/{code}: incompatible coding alphabet.")
+            timelines[filename, site, code] = Timeline.from_samples(
+                metadata.get(filename, {}).get("times"), _sequence_values(seq),
+                f"{filename}, {site}/{code}")
+
+    rows = []
+    for first, second in iter_file_pairs(files):
+        for site, code in site_codes:
+            result = time_agreement(timelines[first, site, code],
+                                    timelines[second, site, code], tolerance)
+            row = [first, second, site, code, str(tolerance),
+                   str(result.start) if result.start is not None else "N/A",
+                   str(result.end) if result.end is not None else "N/A",
+                   str(result.duration),
+                   format_kappa(result.strict) if result.strict is not None else "N/A"]
+            if tolerance:
+                row.append(format_kappa(result.adjusted) if result.adjusted is not None else "N/A")
+            rows.append(row + [str(result.disagreement), str(result.credited), result.warning])
     return headers, rows
 
 
@@ -215,6 +258,7 @@ class KappaTool:
         self.parent = parent
         self.selected_files = []
         self.gdata = {}
+        self.metadata = {}
         self.codes_by_site = {}
         self.select_all_sites_var = tkinter.BooleanVar(value=False)
         self.select_all_codes_var = tkinter.BooleanVar(value=False)
@@ -274,9 +318,62 @@ class KappaTool:
         )
         code_all.grid(column=1, row=1, sticky=tkinter.W)
 
+        options = tkinter.Frame(self.tab)
+        options.grid(column=0, row=2, sticky="w")
+        self.time_aligned = tkinter.BooleanVar(value=False)
+        self.tolerance = tkinter.StringVar(value="0")
+        self.time_checkbox = tkinter.Checkbutton(
+            options, text="Enable time-aligned Cohen's kappa", variable=self.time_aligned,
+            command=self._toggle_alignment)
+        self.time_checkbox.grid(row=0, column=0, sticky="w")
+        tkinter.Label(options, text="Timestamp tolerance (ms)").grid(row=0, column=1)
+        self.tolerance_entry = ttk.Entry(options, width=9, textvariable=self.tolerance,
+                                         state="disabled")
+        self.tolerance_entry.grid(row=0, column=2)
+        tkinter.Label(options, justify="left", wraplength=620,
+                      text="Time alignment compares shared recording time. Tolerance allows a "
+                           "local difference between matching behaviour changes. Both files "
+                           "must already use the same recording clock.").grid(
+                               row=1, column=0, columnspan=3, sticky="w")
+
         launch_but = tkinter.Button(self.tab, text="Compute kappa",
                                     command=self.launch)
-        launch_but.grid(column=0, row=2, sticky=tkinter.W)
+        launch_but.grid(column=0, row=3, sticky=tkinter.W)
+
+        self.results_frame = tkinter.LabelFrame(self.tab, text="Last time-aligned calculation",
+                                                width=620, height=145)
+        self.results_frame.grid(column=0, row=4, sticky="nsew")
+        self.results_frame.grid_propagate(False)
+        self.tab.columnconfigure(0, weight=1)
+        self.tab.rowconfigure(4, weight=1, minsize=145)
+        self.results_frame.columnconfigure(0, weight=1)
+        self.results_frame.rowconfigure(0, weight=1)
+        self.results = ttk.Treeview(self.results_frame, show="headings", height=4)
+        self.results.grid(row=0, column=0, sticky="nsew")
+        horizontal = ttk.Scrollbar(self.results_frame, orient="horizontal", command=self.results.xview)
+        vertical = ttk.Scrollbar(self.results_frame, orient="vertical", command=self.results.yview)
+        horizontal.grid(row=1, column=0, sticky="ew")
+        vertical.grid(row=0, column=1, sticky="ns")
+        self.results.configure(xscrollcommand=horizontal.set, yscrollcommand=vertical.set)
+        self.results_frame.grid_remove()
+
+    def _toggle_alignment(self):
+        enabled = self.time_aligned.get()
+        self.tolerance_entry.configure(state="normal" if enabled else "disabled")
+        if not enabled:
+            self.results_frame.grid_remove()
+
+    def _show_results(self, headers, rows):
+        self.results.delete(*self.results.get_children())
+        self.results.configure(columns=headers)
+        font = tkinter.font.nametofont("TkDefaultFont")
+        for header, values in zip(headers, zip(*rows)):
+            width = max(font.measure(header), max(map(font.measure, set(values))))
+            self.results.heading(header, text=header)
+            self.results.column(header, width=width + 24, stretch=False)
+        for row in rows:
+            self.results.insert("", "end", values=row)
+        self.results_frame.grid()
 
     def _set_all_selection(self, scrolled_listbox, selected):
         listbox = scrolled_listbox.component("listbox")
@@ -334,6 +431,8 @@ class KappaTool:
         """
         self.selected_files = state["files"]
         self.gdata = state["data"]
+        self.metadata = state.get("metadata", {})
+        self.results_frame.grid_remove()
         self.codes_by_site = common_codes_by_site(self.selected_files,
                                                   self.gdata)
 
@@ -371,9 +470,16 @@ class KappaTool:
         """
         try:
             site_codes = self._selected_site_codes()
-            headers, rows = build_kappa_table(self.selected_files,
-                                              self.gdata,
-                                              site_codes)
+            filename = kappa_filename(site_codes)
+            if self.time_aligned.get():
+                self.results_frame.grid_remove()
+                tolerance = parse_tolerance(self.tolerance.get())
+                headers, rows = build_time_kappa_table(
+                    self.selected_files, self.gdata, self.metadata, site_codes, tolerance)
+                filename = f"{pathlib.Path(filename).stem}_time_aligned_{tolerance}ms.csv"
+                self._show_results(headers, rows)
+            else:
+                headers, rows = build_kappa_table(self.selected_files, self.gdata, site_codes)
         except Exception as exc:
             tkinter.messagebox.showerror(title="Could not compute kappa",
                                          message=str(exc))
@@ -392,7 +498,7 @@ class KappaTool:
         if not outdir:
             return
 
-        outfile = os.path.join(outdir, kappa_filename(site_codes))
+        outfile = os.path.join(outdir, filename)
         try:
             with open(outfile, "w", encoding="utf-8", newline="") as datafile:
                 datafile.writelines(to_csv_lines(headers, rows))

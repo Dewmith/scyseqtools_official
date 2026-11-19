@@ -23,11 +23,14 @@ import tkinter.simpledialog
 import scyseqtools.encoder.utils as U
 from scyseqtools.encoder.infoframe import InfoFrame
 from scyseqtools.encoder.playercontrol import PlayerControl
+from scyseqtools.encoder.playerbackends import prepare_video_display
+from scyseqtools.encoder.sessionpanel import SessionPanel
 from scyseqtools.encoder.applicationmenu import ApplicationMenu, EncoderHome
 from scyseqtools.encoder.codingframe import FrameworkFrame
 from scyseqtools.encoder.config import (
     get_cwd_file_path,
     get_encoder_layout,
+    remember_encoder_layout,
     load_encoder_config,
 )
 from scyseqtools.encoder.newcode import NewCode
@@ -42,6 +45,7 @@ class Application(tkinter.Tk):
     Main ScySeqTools application class
     """
     def __init__(self):
+        prepare_video_display()
         tkinter.Tk.__init__(self)
         self.title("scyseqtools")
         self.resizable(tkinter.TRUE, tkinter.TRUE)
@@ -88,6 +92,8 @@ class Application(tkinter.Tk):
         self.framework = None
         self._control_window = None
         self._coding_window = None
+        self._video_window = None
+        self.video_surface = None
         self.recorded_steps = set()
         self.coding_workspace = None
 
@@ -137,7 +143,6 @@ class Application(tkinter.Tk):
 
     def _enter_workflow(self):
         self.cwd = self._save_project or self._last_project
-        self.encoder_layout = get_encoder_layout(self.cwd)
         self.home.hide()
         self._back_button.grid()
 
@@ -160,7 +165,7 @@ class Application(tkinter.Tk):
         self._back_button.grid_remove()
         for column in (0, 1):
             self.grid_columnconfigure(column, weight=0)
-        for row in (1, 2):
+        for row in (1, 2, 3):
             self.grid_rowconfigure(row, weight=0)
         self.title("scyseqtools")
         self.deiconify()
@@ -180,28 +185,16 @@ class Application(tkinter.Tk):
         self._return_home()
 
     def start_session(self):
-        """Starting a new coding session
-        """
-        self._enter_workflow()
-        self.info = InfoFrame(parent=self,
-                              states=(tkinter.NORMAL,    # load media
-                                      tkinter.DISABLED,  # load code
-                                      tkinter.DISABLED)) # load data
-        self.__grid_information_frame()
-        if not self.detached_layout:
-            self.__make_coding_workspace()
+        self._open_session((tkinter.NORMAL, tkinter.DISABLED, tkinter.DISABLED))
 
     def retrieve_session(self):
-        """Resume an interrupted coding session
-        """
+        self._open_session((tkinter.DISABLED, tkinter.DISABLED, tkinter.NORMAL))
+
+    def _open_session(self, states):
         self._enter_workflow()
-        self.info = InfoFrame(parent=self,
-                              states=(tkinter.DISABLED, # load code
-                                      tkinter.DISABLED, # load media
-                                      tkinter.NORMAL))  # load data
-        self.__grid_information_frame()
-        if not self.detached_layout:
-            self.__make_coding_workspace()
+        self.encoder_layout = get_encoder_layout(self.cwd)
+        self.info = InfoFrame(self, states=states)
+        self._place_session(self.detached_layout)
 
     def report_issue(self):
         self._open_project_page("/issues/new")
@@ -230,58 +223,52 @@ class Application(tkinter.Tk):
         """Whether encoder content should be split into separate windows."""
         return self.encoder_layout == "detached"
 
-    def __grid_information_frame(self):
-        """
-        Put the information frame in the root window.
-        """
-        if self.detached_layout:
-            self.title(f'ScySeqTools - Information - version: {__version__}')
-            self.grid_columnconfigure(0, weight=1)
-            self.grid_rowconfigure(1, weight=1)
-            self.info.grid(row=1, column=0, sticky=U.sticky_all)
-        else:
-            self.info.grid(row=1, column=1, sticky=U.sticky_all)
-
-    def __detached_window(self, attr_name, title):
-        """
-        Return an application-managed detached content window.
-        """
-        window = getattr(self, attr_name)
-        if window is not None and window.winfo_exists():
-            window.deiconify()
-            window.lift()
-            return window
-
-        window = tkinter.Toplevel(self)
-        window.title(f'ScySeqTools - {title} - version: {__version__}')
-        window.resizable(tkinter.TRUE, tkinter.TRUE)
-        window.protocol("WM_DELETE_WINDOW", self.__refocus_information_window)
-        window.grid_columnconfigure(0, weight=1)
-        window.grid_rowconfigure(1, weight=1)
-        self._add_back_button(window)
-        setattr(self, attr_name, window)
-        return window
-
-    def __refocus_information_window(self):
-        """
-        Keep detached content windows open and return focus to Information.
-        """
+    def switch_session_layout(self):
+        detached = self.info.detach_windows.get()
+        if detached == self.detached_layout:
+            return
         try:
-            self.deiconify()
-            self.lift()
-            self.focus_force()
-        except tkinter.TclError:
-            pass
+            self._place_session(detached)
+            # A user-sized Information window may be too small for the full grid.
+            self.geometry("")
+        except tkinter.TclError as error:
+            self.info.detach_windows.set(self.detached_layout)
+            self._place_session(self.detached_layout)
+            tkinter.messagebox.showerror("Cannot switch layout", str(error), parent=self)
+            return
+        self.encoder_layout = "detached" if detached else "embedded"
+        try:
+            remember_encoder_layout(self.encoder_layout)
+        except OSError as error:
+            tkinter.messagebox.showwarning("Cannot remember layout", str(error), parent=self)
 
-    def __control_parent(self):
-        if self.detached_layout:
-            return self.__detached_window("_control_window", "Control")
-        return self
+    def _place_session(self, detached):
+        if not detached and self.coding_workspace is None:
+            self.__make_coding_workspace()
+        has_video = self._video_window is not None
+        side_column = 1 if has_video and not detached else 0
+        title = "Information" if detached else "Encoder"
+        self.title(f"ScySeqTools - {title} - version: {__version__}")
+        self.columnconfigure(0, weight=1)
+        self.columnconfigure(1, weight=0)
+        self.rowconfigure(1, weight=1)
+        self.rowconfigure(3, weight=int(not detached))
+        self.info.grid(row=1, column=side_column, sticky="nsew")
+        if has_video:
+            self._video_window.place_panel(detached)
+        if self._control_window is not None:
+            self._control_window.grid_position["column"] = side_column
+            self._control_window.place_panel(detached)
+        if self._coding_window is not None:
+            self._coding_window.place_panel(detached, visible=not detached or self.framework is not None)
 
-    def __coding_parent(self):
-        if self.detached_layout:
-            return self.__detached_window("_coding_window", "Coding framework")
-        return self
+    def _session_panel(self, title, **position):
+        return SessionPanel(self, f"ScySeqTools - {title} - version: {__version__}", **position)
+
+    def focus_information(self):
+        self.deiconify()
+        self.lift()
+        self.info.detach_check.focus_force()
 
     def _close_workflow(self):
         if self._editor_focus_job is not None:
@@ -289,8 +276,8 @@ class Application(tkinter.Tk):
         if self.control is not None and self.control.winfo_exists():
             self.control.shutdown()
 
-        for widget in (self._control_window, self._coding_window, self.info,
-                       self.control, self.coding_workspace, self.newcode):
+        for widget in (self._control_window, self._coding_window, self._video_window,
+                       self.info, self.newcode):
             if widget is not None and widget.winfo_exists():
                 widget.destroy()
 
@@ -302,23 +289,39 @@ class Application(tkinter.Tk):
 # Functions related to infoframe
 #-------------------------------
 
-    def make_media_player(self, fname):
-        """
-        create a player control frame
-        """
-        parent = self.__control_parent()
-        self.control = PlayerControl(
-            parent=parent,
-            file_name=fname,
-            application=self,
-        )
-        if self.detached_layout:
-            self.control.grid(row=1, column=0, sticky=U.sticky_all)
-            parent.lift()
-        else:
-            self.control.grid(row=1, column=0, sticky=U.sticky_all)
+    def make_media_player(self, fname, has_video=None):
+        """Map the drawing surface before the backend starts playback."""
+        if has_video is None:
+            has_video = "Video" in U.media_track_types(fname)
+        self._control_window = self._session_panel("Control", row=2, column=0)
+        try:
+            window_id = None
+            if has_video:
+                self._video_window = self._session_panel("Video", row=1, column=0, rowspan=2)
+                self.video_surface = tkinter.Frame(self._video_window, background="black",
+                                                   width=480, height=270)
+                self.video_surface.grid(row=1, column=0, sticky="nsew")
+            self._place_session(self.detached_layout)
+            if has_video:
+                self.update_idletasks()
+                window_id = self.video_surface.winfo_id()
+            self.control = PlayerControl(self._control_window, fname, application=self,
+                                         window_id=window_id)
+            self.control.grid(row=1, column=0, sticky="nsew")
+        except Exception as error:
+            if self.control is not None:
+                self.control.shutdown()
+            self._control_window.destroy()
+            if self._video_window is not None:
+                self._video_window.destroy()
+            self.control = self._control_window = None
+            self.video_surface = self._video_window = None
+            self._place_session(self.detached_layout)
+            tkinter.messagebox.showerror("Cannot open media player", str(error), parent=self)
+            return False
         self.state['media_loaded'] = True
         self.container['media'] = Path(fname).absolute().as_posix()
+        return True
 
     def make_coding_frame(self, fname):
         """
@@ -333,6 +336,7 @@ class Application(tkinter.Tk):
         self.framework.grid(row=0, column=0, sticky=U.sticky_all,
                             padx=20, pady=20)
         self.state['code_loaded'] = True
+        self._place_session(self.detached_layout)
 
     def __make_coding_workspace(self):
         """
@@ -345,14 +349,8 @@ class Application(tkinter.Tk):
             self.cwd, required_sections=("codingframework",)
         )
         coding_config = config["codingframework"]
-        parent = self.__coding_parent()
-
-        if not self.detached_layout:
-            self.grid_columnconfigure(0, weight=1)
-            self.grid_columnconfigure(1, weight=1)
-            self.grid_rowconfigure(2, weight=1)
-
-        self.coding_workspace = tkinter.LabelFrame(parent)
+        self._coding_window = self._session_panel("Coding framework", row=3, column=0, columnspan=2)
+        self.coding_workspace = tkinter.LabelFrame(self._coding_window)
         self.coding_workspace.configure(
             background=coding_config["background"],
             borderwidth=coding_config.getint("borderwidth"),
@@ -362,12 +360,7 @@ class Application(tkinter.Tk):
             text='Coding framework: ',
             font=('bold',),
         )
-        if self.detached_layout:
-            self.coding_workspace.grid(row=1, column=0, sticky=U.sticky_all)
-            parent.lift()
-        else:
-            self.coding_workspace.grid(row=2, column=0, columnspan=2,
-                                       sticky=U.sticky_all)
+        self.coding_workspace.grid(row=1, column=0, sticky="nsew")
         self.coding_workspace.grid_columnconfigure(0, weight=1)
         self.coding_workspace.grid_columnconfigure(1, weight=1)
         self.coding_workspace.grid_rowconfigure(0, weight=1)

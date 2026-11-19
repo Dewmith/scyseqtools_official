@@ -147,16 +147,29 @@ class InfoFrame(tkinter.LabelFrame):
                                         command=self.ask_data)
         self.data_load.grid(row=4, column=2, sticky=tkinter.W)
 
+        self.detach_windows = tkinter.BooleanVar(self, value=parent.detached_layout)
+        self.detach_check = tkinter.Checkbutton(
+            self, text="Detach windows", variable=self.detach_windows,
+            command=parent.switch_session_layout, background=info_bg,
+        )
+        self.detach_check.grid(row=5, column=0, columnspan=3, sticky="w")
+
 # Interface elements
         self.elements = [self, self.directory_label, self.media_label, self.data_label, self.code_label, self.directory_msg]
 
         self.bind('<Button-3>', self.change_color)
 
     def _load_media(self, filename):
-        self.application.make_media_player(filename)
+        tracks = U.media_track_types(filename)
+        if not tracks.intersection({"Video", "Audio"}):
+            tkinter.messagebox.showinfo("Cannot load media file", filename, parent=self)
+            return False
+        if not self.application.make_media_player(filename, has_video="Video" in tracks):
+            return False
         path = Path(filename)
         self.directory_msg.config(text=str(path.parent))
         self.media_file.set(path.name)
+        return True
 
     def ask_media(self):
         filename = tkinter.filedialog.askopenfilename(
@@ -164,10 +177,8 @@ class InfoFrame(tkinter.LabelFrame):
         )
         if not filename:
             return
-        if not U.is_valid_media(filename):
-            tkinter.messagebox.showinfo("Cannot load media file", filename, parent=self)
+        if not self._load_media(filename):
             return
-        self._load_media(filename)
         self.media_load.config(state="disabled")
         self.code_load.config(state="normal")
 
@@ -193,21 +204,21 @@ class InfoFrame(tkinter.LabelFrame):
             parent=self, initialdir=self.application.browse_folder("data"),
             filetypes=[("ScySeqTools data file", "*.cdx"), ("All files", "*.*")],
         )
-        if filename:
-            self.read_data(filename)
+        if filename and self.read_data(filename):
             self.data_load.config(state="disabled")
 
     def read_data(self, fname):
         with open(fname, "r") as datafile:
             data = json.load(datafile)
 
-        self.application.state["data_loaded"] = True
         code = data["code"]["filename"]
         media = data["media"]
-        if os.path.exists(media) and U.is_valid_media(media):
-            self._load_media(media)
-        else:
+        if not os.path.exists(media):
             tkinter.messagebox.showinfo("Cannot load media file", media, parent=self)
+            return False
+        if not self._load_media(media):
+            return False
+        self.application.state["data_loaded"] = True
         if os.path.exists(code):
             self.application.make_coding_frame(code)
             self.code_file.set(code)
@@ -221,6 +232,7 @@ class InfoFrame(tkinter.LabelFrame):
         self.application.recorded_steps = resume_state["recorded_steps"]
         self.session_path = Path(fname)
         self.data_file.set(str(self.session_path))
+        return True
 
     def save_data(self, record, parent):
         """Write the proposed record before committing the sample in the UI."""
@@ -264,3 +276,4 @@ class InfoFrame(tkinter.LabelFrame):
         self.data_label.configure(background=colortuple[1])
         self.directory_label.configure(background=colortuple[1])
         self.directory_msg.configure(background=colortuple[1])
+        self.detach_check.configure(background=colortuple[1])

@@ -4,6 +4,7 @@ import configparser
 import os
 from importlib.resources import files
 from pathlib import Path
+from tempfile import NamedTemporaryFile
 
 import platformdirs
 
@@ -12,6 +13,7 @@ APP_NAME = "ScySeqTools"
 APP_COMPONENT_NAME = "Encoder"
 CONFIG_FILENAME = "config.ini"
 CWD_FILENAME = "cwdfile.ini"
+LAYOUT_FILENAME = "encoder-layout"
 VALID_ENCODER_LAYOUTS = ("embedded", "detached")
 
 
@@ -107,7 +109,14 @@ def load_encoder_config(cwd=None, required_sections=(), config_dir=None):
 
 
 def get_encoder_layout(cwd=None):
-    """Return the configured encoder window layout."""
+    """Use the last selected layout, falling back to the configured layout."""
+    try:
+        remembered = (get_user_state_dir() / LAYOUT_FILENAME).read_text(encoding="utf-8").strip()
+    except (OSError, UnicodeError):
+        remembered = None
+    if remembered in VALID_ENCODER_LAYOUTS:
+        return remembered
+
     config = load_encoder_config(cwd, required_sections=("application",))
     layout = config["application"].get("encoder_layout", "embedded").strip().lower()
 
@@ -119,3 +128,18 @@ def get_encoder_layout(cwd=None):
         )
 
     return layout
+
+
+def remember_encoder_layout(layout):
+    """Atomically persist a successful layout change across launches."""
+    path = get_app_state_file_path(LAYOUT_FILENAME)
+    pending = None
+    try:
+        with NamedTemporaryFile(mode="w", encoding="utf-8", dir=path.parent,
+                                delete=False) as stream:
+            pending = Path(stream.name)
+            stream.write(layout)
+        pending.replace(path)
+    finally:
+        if pending is not None:
+            pending.unlink(missing_ok=True)

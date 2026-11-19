@@ -25,15 +25,13 @@ def ensure_subdirectory(parent, name):
     os.makedirs(folder, exist_ok=True)
     return folder
 
+def media_track_types(fname):
+    """Identify playable streams before creating the player's video output."""
+    return {track.track_type for track in MediaInfo.parse(fname).tracks}
+
+
 def is_valid_media(fname):
-    if is_valid_filename(fname):
-        fileInfo = MediaInfo.parse(fname)
-        track_types = [track.track_type for track in fileInfo.tracks]
-        if "Video" in track_types or "Audio" in track_types:
-            return True
-#        else:
-#            return False
-    return False
+    return bool(is_valid_filename(fname) and media_track_types(fname) & {"Video", "Audio"})
 
 #    for track in fileInfo.tracks:
 #        if track.track_type == "Video" or track.track_type == "Audio":

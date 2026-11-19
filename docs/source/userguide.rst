@@ -135,16 +135,22 @@ settings. When you start a workflow, any settings in the last project's
 ``config.ini`` take precedence. If you choose a different project folder while
 saving, its settings take effect when you start the next workflow.
 
-The bundled layout opens separate Information, Control, and Coding framework
-windows. To use a single window, set ``encoder_layout`` in the ``[application]``
-section of your personal or project ``config.ini``:
+In **Start a new session** and **Retrieve a session**, use **Detach windows**
+in *Information* at any time. Check it to move Control, Coding framework, and
+Video into separate windows as you load them. Clear it to bring them together
+with Information. Audio-only media uses just the controls. You can switch
+while playing a clip or entering an observation and continue where you were.
+
+The encoder remembers your choice for future sessions and launches. Before
+your first checkbox change, it uses ``encoder_layout`` from your personal or
+project ``config.ini``. The bundled setting is ``detached``. For example, to
+start with a single window:
 
 .. code-block:: ini
 
    [application]
    encoder_layout = embedded
 
-Set ``encoder_layout = detached`` to use separate windows again.
 
 Analysis Guide
 --------------

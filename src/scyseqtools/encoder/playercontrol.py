@@ -11,7 +11,6 @@ from tkinter.colorchooser import askcolor
 
 from scyseqtools.encoder.config import load_encoder_config
 from scyseqtools.encoder.playerbackends import (
-    PlayerBackendError,
     configured_backend_name,
     create_player_backend,
 )
@@ -63,7 +62,7 @@ class PlayerControl(tkinter.LabelFrame):
     - a checkbox for setting regular playing
     """
 
-    def __init__(self, parent, file_name, application=None):
+    def __init__(self, parent, file_name, application=None, window_id=None):
         """
         Creates player control buttons
         """
@@ -130,17 +129,16 @@ class PlayerControl(tkinter.LabelFrame):
         self.bind('<Button-3>', self.change_color)
 
         # player instance
-        try:
-            self.player = create_player_backend(backend_name, file_name)
-        except PlayerBackendError as exc:
-            tkinter.messagebox.showinfo('Media player backend error', str(exc))
-            raise
-
         self._state = "paused"
         self._current_time = 0
         self._step_after_id = None
-        self.max_time = self.refresh_max_time() # a long in ms
-        self.time = 0 # 'Initial time')
+        self.player = create_player_backend(backend_name, file_name, window_id)
+        try:
+            self.max_time = self.refresh_max_time()
+            self.time = 0
+        except Exception:
+            self.shutdown()
+            raise
         print('Length of media file: ', self.max_time, ' ms.')
 
         self.elements = [self, self.period_lab, self.time_lab, self.mode_check, self.unit_lab]

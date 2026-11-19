@@ -1,5 +1,6 @@
 """Media-player backends for the encoder player control."""
 
+import sys
 import time
 
 
@@ -9,6 +10,15 @@ SUPPORTED_BACKENDS = ("vlc", "mpv")
 
 class PlayerBackendError(RuntimeError):
     """Raised when a configured media-player backend cannot be used."""
+
+
+def prepare_video_display():
+    """Initialize Xlib threading before Tk opens the display used by LibVLC."""
+    if sys.platform.startswith("linux"):
+        from ctypes import CDLL
+
+        if not CDLL("libX11.so.6").XInitThreads():
+            raise PlayerBackendError("Could not initialize X11 threading for video playback.")
 
 
 def normalize_backend_name(name):
@@ -28,20 +38,20 @@ def configured_backend_name(playercontrol_config):
     return normalize_backend_name(playercontrol_config.get("backend", DEFAULT_BACKEND))
 
 
-def create_player_backend(name, file_name):
+def create_player_backend(name, file_name, window_id=None):
     """Create the configured media-player backend."""
     backend_name = normalize_backend_name(name)
     if backend_name == "vlc":
-        return VlcPlayerBackend(file_name)
+        return VlcPlayerBackend(file_name, window_id)
     if backend_name == "mpv":
-        return MpvPlayerBackend(file_name)
+        return MpvPlayerBackend(file_name, window_id)
     raise AssertionError(f"Unhandled media player backend: {backend_name}")
 
 
 class VlcPlayerBackend:
     """VLC implementation of the media-player backend API."""
 
-    def __init__(self, file_name):
+    def __init__(self, file_name, window_id=None):
         try:
             import vlc
         except ImportError as exc:
@@ -52,7 +62,16 @@ class VlcPlayerBackend:
         args = ["--no-xlib"]
         self._instance = vlc.Instance(args)
         self._player = self._instance.media_player_new()
-        self.load(file_name)
+        try:
+            if window_id is not None:
+                if sys.platform == "win32":
+                    self._player.set_hwnd(window_id)
+                else:
+                    self._player.set_xwindow(window_id)
+            self.load(file_name)
+        except Exception:
+            self.close()
+            raise
 
     def load(self, file_name):
         media = self._player.set_mrl(file_name)
@@ -88,7 +107,7 @@ class VlcPlayerBackend:
 class MpvPlayerBackend:
     """MPV implementation of the media-player backend API."""
 
-    def __init__(self, file_name):
+    def __init__(self, file_name, window_id=None):
         try:
             import mpv
         except ImportError as exc:
@@ -105,7 +124,11 @@ class MpvPlayerBackend:
             )
 
         try:
-            self._player = player_factory()
+            options = {"wid": str(window_id)} if window_id is not None else {}
+            if window_id is not None and sys.platform.startswith("linux"):
+                # Tk supplies an XID even on a Wayland desktop using XWayland.
+                options.update(gpu_context="x11egl", vo="gpu,x11")
+            self._player = player_factory(**options)
             initialize = getattr(self._player, "initialize", None)
             if callable(initialize):
                 initialize()
@@ -115,7 +138,11 @@ class MpvPlayerBackend:
                 "installed and visible in PATH."
             ) from exc
 
-        self.load(file_name)
+        try:
+            self.load(file_name)
+        except Exception:
+            self.close()
+            raise
 
     def load(self, file_name):
         self._player.pause = True

@@ -56,20 +56,19 @@ def _translated(a, b):
     return all(y - x == offset for x, y in zip(a, b))
 
 
-def _duration_matrix(a, b, start, end):
-    matrix = Counter()
+def paired_intervals(a, b, start, end):
+    """Walk both recordings on their common clock within the given overlap."""
     i = bisect_right(a.edges, start) - 1
     j = bisect_right(b.edges, start) - 1
     time = start
     while time < end:
         stop = min(a.edges[i + 1], b.edges[j + 1], end)
-        matrix[a.states[i], b.states[j]] += stop - time
+        yield time, stop, a.states[i], b.states[j]
         if a.edges[i + 1] == stop:
             i += 1
         if b.edges[j + 1] == stop:
             j += 1
         time = stop
-    return matrix
 
 
 def _kappa(matrix):
@@ -150,7 +149,9 @@ def time_agreement(a, b, tolerance):
     if end <= start:
         return Agreement(warning=" ".join(["No overlapping recording time."] + warnings))
 
-    matrix = _duration_matrix(a, b, start, end)
+    matrix = Counter()
+    for left, right, first, second in paired_intervals(a, b, start, end):
+        matrix[first, second] += right - left
     result = Agreement(start, end, end - start, _kappa(matrix))
     result.disagreement = sum(d for (x, y), d in matrix.items() if x != y)
     if result.strict is None:

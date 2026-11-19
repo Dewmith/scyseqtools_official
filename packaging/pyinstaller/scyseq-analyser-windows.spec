@@ -2,7 +2,7 @@
 
 from pathlib import Path
 
-from PyInstaller.utils.hooks import collect_data_files
+from PyInstaller.utils.hooks import collect_data_files, copy_metadata
 
 
 repo_root = Path(SPECPATH).parents[1]
@@ -29,7 +29,7 @@ a = Analysis(
     [str(src_dir / "scyseqtools" / "analyser" / "main.py")],
     pathex=[str(src_dir)],
     binaries=[],
-    datas=pmw_datas,
+    datas=pmw_datas + copy_metadata("scyseqtools") + copy_metadata("scyseq"),
     hiddenimports=hiddenimports,
     hookspath=[],
     hooksconfig={},

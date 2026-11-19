@@ -1,13 +1,18 @@
 # -*- mode: python ; coding: utf-8 -*-
 
 from pathlib import Path
+import sys
 
-from PyInstaller.utils.hooks import collect_data_files
+from PyInstaller.utils.hooks import collect_data_files, copy_metadata
 
 
 repo_root = Path(SPECPATH).parents[1]
 src_dir = repo_root / "src"
 pmw_datas = collect_data_files("Pmw", include_py_files=True)
+# Standalone Python distributions can keep Tcl/Tk outside the system linker paths.
+python_lib = Path(sys.base_prefix) / "lib"
+tk_binaries = [(str(path), ".") for pattern in ("libtcl[0-9]*.so", "libtk[0-9]*.so")
+               for path in python_lib.glob(pattern)]
 
 hiddenimports = [
     "Pmw",
@@ -28,8 +33,8 @@ hiddenimports = [
 a = Analysis(
     [str(src_dir / "scyseqtools" / "analyser" / "main.py")],
     pathex=[str(src_dir)],
-    binaries=[],
-    datas=pmw_datas,
+    binaries=tk_binaries,
+    datas=pmw_datas + copy_metadata("scyseqtools") + copy_metadata("scyseq"),
     hiddenimports=hiddenimports,
     hookspath=[],
     hooksconfig={},

@@ -110,7 +110,7 @@ your last recorded label. Click **Play/Pause** to observe the next interval.
 
 ### See your results in the Analyser
 
-In the Analyser, click **Choose data directory** and open the folder containing your `.cdx` file. Highlight it under **Available files** and click **Select file(s)**. Open **Statistics**, highlight your site, and click **Select** to see its codes. Choose your code, click **Launch**, and choose an output folder. Open the resulting `.csv` in a spreadsheet to see the sequence length and label frequencies.
+In the Analyser, click **Choose data directory** and open the folder containing your `.cdx` file. Check it under **Available files** and click **Load checked files**. Open **Statistics**, choose your site and code, and click **Compute statistics**. Select a file in the results table to see its label frequencies and sample count. Choose an output folder to save the CSV and printable HTML report, or cancel to keep exploring the result in the app.
 
 For other analyses and Encoder settings, read the [full user guide](https://scyseq-tools.github.io/scyseqtools/userguide.html).
 If you need help, include your operating system, app version, and what happened in the [issue tracker](https://github.com/scyseq-tools/scyseqtools/issues).

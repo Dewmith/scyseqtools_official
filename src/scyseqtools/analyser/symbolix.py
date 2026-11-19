@@ -16,6 +16,8 @@ from scyseq import algorithmic as A
 from scyseq import stochastic as T
 from scyseq import operations as O
 
+from scyseqtools.analyser.charts import FrequencyBars
+from scyseqtools.analyser.reports import AnalysisResult, Detail
 from scyseqtools.analyser.exports import SequenceExport, SequenceExports, TableExport
 
 SEQ_EXT = '.cdx'
@@ -111,6 +113,25 @@ def symbol_label(symbol):
     """
     return getattr(symbol, 'strval', getattr(symbol, 'sval', str(symbol)))
 
+def statistics_result(records):
+    if not records:
+        raise ValueError("Load at least one file to compute statistics.")
+    site, code = records[0]["sitename"], records[0]["codename"]
+    labels = tuple(records[0]["sequence"].alphabet.svals)
+    rows, details = [], []
+    for record in records:
+        name, seq = record["filename"], record["sequence"]
+        if tuple(seq.alphabet.svals) != labels:
+            raise ValueError(f"{name}, {site}/{code}: label names and order must match across files.")
+        values = tuple(seq.frequency()) if len(seq) else (float("nan"),) * len(labels)
+        rows.append([name, len(seq), *values])
+        details.append([Detail(f"{site} / {code}", f"{name} · {site} / {code}",
+                               f"N = {len(seq)} observations. Bars show the percentage in each label.",
+                               FrequencyBars(labels, values))])
+    return AnalysisResult("Statistics", f"{site}_{code}_statistics.csv",
+                          ["Filename", "N", *labels], rows, details)
+
+
 class Symbolix():
     """
     Main class for our Behavior server
@@ -124,23 +145,8 @@ class Symbolix():
         @rtype: TableExport with a CSV filename and lines containing sequence
         lengths and symbol frequencies.
         """
-        # assume that site, code and alphabet are the same for all the sequences
-        filename = '_'.join([lod[0]['sitename'], lod[0]['codename'], \
-                             'statistics']) + TABLE_EXT
-        headers = ['Filename', 'N']
-        seq = lod[0]['sequence']
-        headers.extend([symbol_label(symb) for symb in seq.alphabet])
-#        headers.extend(['%s_%s' % (str(item), str(nb))
-#                                   for nb, item in enumerate(seq.alphabet)])
-        rows = []
-        for data in lod:
-            retlist = [data['filename']]
-            seq = data['sequence']
-            retlist.append(len(seq))
-            retlist.extend(seq.frequency())
-            rows.append(retlist)
-
-        return TableExport(filename, to_table(headers, rows))
+        result = statistics_result(lod)
+        return TableExport(result.filename, result.csv_lines())
 
     def mutual_information(self, lod1:Data, lod2:Data) -> TableExport :
         """

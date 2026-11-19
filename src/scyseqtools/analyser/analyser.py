@@ -6,6 +6,8 @@ from scyseqtools.analyser.kappa import KappaTool
 from scyseqtools.analyser.methods import Method
 from scyseqtools.analyser.synchronization import SynchronizationTool
 from scyseqtools.analyser.symbolix import Symbolix
+from scyseqtools.analyser.statistics import StatisticsTool
+from scyseqtools.analyser.resultpanel import release_results
 from scyseqtools.applicationmenu import ApplicationMenu
 
 import os
@@ -185,7 +187,7 @@ class Application(tkinter.Tk):
     def __init__(self):
 #       Create and pack the NoteBook.
         tkinter.Tk.__init__(self)
-        self.protocol("WM_DELETE_WINDOW", self.destroy)
+        self.protocol("WM_DELETE_WINDOW", self.request_exit)
         Pmw.initialise(self)
         self.title("scyseqtools")
         self.menu = ApplicationMenu(master=self)
@@ -206,6 +208,8 @@ class Application(tkinter.Tk):
         self.notebook.pack(fill = 'both', expand = 1, padx = 10, pady = 10)
         # Add the "Configuration" page to the notebook.
         config_frame = self.notebook.add('Configuration')
+        config_frame.grid_columnconfigure(1, weight=1)
+        config_frame.grid_rowconfigure(2, weight=1)
         self.notebook.tab('Configuration').focus_set()
 
         dir_lab = tkinter.Label(config_frame, text='Directory')
@@ -216,7 +220,7 @@ class Application(tkinter.Tk):
         self.dir_but = tkinter.Button(config_frame, text='Choose data directory',
                                      command=self.get_directory)
         dir_lab.grid(column=0, row=1)
-        dir_ent.grid(column=1, row=1)
+        dir_ent.grid(column=1, row=1, sticky='ew')
         self.dir_but.grid(column=2, row=1)
 
         grp = Pmw.Group(config_frame, tag_text='Files')
@@ -233,12 +237,12 @@ class Application(tkinter.Tk):
 
         button_frame = tkinter.Frame(grp.interior())
         button_frame.grid(row=2, column=1, padx=10, sticky=tkinter.N)
-        self.file_but = tkinter.Button(button_frame, text="Select file(s)",
+        self.file_but = tkinter.Button(button_frame, text="Load checked files",
                                        command=self.load_file)
         self.file_but.grid(row=0, column=0, pady=(35, 0), sticky='ew')
 
         self.selected = CheckboxFileList(grp.interior(),
-                                         label_text='Selected files',
+                                         label_text='Loaded files (0)',
                                          width=320, height=300)
         self.selected.grid(row=2, column=2, sticky='nsew')
 
@@ -248,15 +252,25 @@ class Application(tkinter.Tk):
                                          command=self.remove_selected_files)
         self.remove_but.grid(row=0, column=0, pady=(35, 0), sticky='ew')
 
-        quit_but = tkinter.Button(config_frame, text='Quit', command=self.destroy)
+        quit_but = tkinter.Button(config_frame, text='Quit', command=self.request_exit)
         quit_but.grid(column=0, row=4)
 
         self.kappa_tool = KappaTool(self)
         self.synchronization_tool = SynchronizationTool(self)
         available_meth = inspect.getmembers(Symbolix, predicate=inspect.isfunction)
         self.methods = [self.kappa_tool, self.synchronization_tool]
-        self.methods.extend([Method(*m, self) for m in available_meth])
+        for name, method in available_meth:
+            if name == "statistics":
+                self.statistics_tool = StatisticsTool(self)
+                self.methods.append(self.statistics_tool)
+            else:
+                self.methods.append(Method(name, method, self))
         self._set_startup_window_size()
+
+    def request_exit(self):
+        panels = [self.kappa_tool.panel, self.statistics_tool.panel]
+        if release_results(panels, self, "exit"):
+            self.destroy()
 
     def _update_methods(self, appstate):
         """
@@ -273,6 +287,7 @@ class Application(tkinter.Tk):
         self.data = appstate['data']
         self.metadata = appstate['metadata']
         self.selected.setlist(self.selected_files)
+        self.selected.configure(text=f"Loaded files ({len(self.selected_files)})")
         self.selected.clear_selection()
         self.available.clear_selection()
         self._update_methods(appstate)
@@ -295,13 +310,13 @@ class Application(tkinter.Tk):
         height = min(self.winfo_reqheight(), self.winfo_screenheight())
 
         self.geometry(f'{width}x{height}')
-        self.minsize(width, height)
+        self.minsize(min(width, 640), min(height, 420))
 
     def get_directory(self):
         """
         Choose a data directory and list its CDX files.
         """
-        initialdir = "/home/zarpe/Documents/tests_scyseqtools/data"
+        initialdir = self.ddir.get() or str(pathlib.Path.home())
 
         outdir = tkinter.filedialog.askdirectory(parent=self,
                                                 initialdir=initialdir)

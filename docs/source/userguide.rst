@@ -170,10 +170,11 @@ Analysis Workflow
 1. Click **Choose data directory** and select the folder containing coded
    ``.cdx`` files.
 2. Select one or more entries in *Available files*.
-3. Click **Select file(s)**. Loaded file names appear in *Selected files*.
+3. Click **Load checked files**. The *Loaded files* list shows the filenames
+   and its heading shows the count. Check files in this list to remove them.
 4. Choose an analysis tab and select the required sites, codes, sequences, and
    parameters.
-5. Click **Launch** or **Compute kappa**, depending on the selected tab.
+5. Click the tab's **Compute** or **Launch** button.
 6. Choose the output folder when prompted.
 
 The analyser creates or uses an ``analyzer_files/`` folder next to the selected
@@ -188,10 +189,15 @@ Use these tabs according to the output you need:
 * **Kappa** computes agreement for each selected file pair, site, and code.
   Select the sites and codes, then click **Compute kappa**. By default the
   tab compares equal-length sequences by position and exports the usual
-  wide CSV table.
-* **Statistics** summarizes sequence length and symbol frequencies for one
-  selected site/code sequence. Highlight a site, click **Select** to show its
-  codes, choose a code, and click **Launch**.
+  wide CSV table. Select a comparison row to see its label-by-label heatmap.
+  When several streams were compared, choose the site and code above the
+  chart. Each cell counts samples, with the two filenames identifying the axes.
+* **Statistics** summarizes sequence length and label frequencies. Choose a
+  site and code, then click **Compute statistics**. Select a file in the
+  results table to see its sample count and percentage bars. A frequency of
+  0.75 in the table corresponds to 75% of observations in the chart.
+* **Synchronization** computes synchronization likelihood, mutual information,
+  and signed direction for a source site, target site, and shared code.
 * **Mutual Information** computes mutual information between two selected
   sequences.
 * **Complexity** computes normalized Lempel-Ziv complexity for one selected
@@ -207,6 +213,23 @@ Use these tabs according to the output you need:
 Table-style analyses save ``.csv`` files. Recoding analyses such as **Join**
 and **Change Code** save ``.cdx`` files that can be reused in later analyser
 workflows.
+
+Reviewing and exporting graphical results
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Kappa and Statistics show the latest calculation in the tab before opening
+the output-folder chooser. Select a row with the mouse or arrow keys to
+change the chart. Cancelling the chooser keeps the result marked **Not
+exported**. Use **Export** to save it later. Changing input files, options,
+or tabs preserves the displayed run and its original filenames and settings.
+
+An export writes the CSV and a printable HTML report in the same folder.
+**Open report** opens the report in your browser, including charts for every
+comparison or file. It works offline. Use your browser's Print command to
+print or save a PDF. **Export again** lets you choose another destination,
+and **Open output folder** shows the saved files. A failed export can be
+retried. Closing the app or replacing a pending run offers to export,
+discard, or cancel.
 
 Time-aligned Cohen's kappa
 ^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -249,6 +272,13 @@ With a 100 ms tolerance, 80 ms receives credit (40 ms per diagonal cell) and
 adjusted kappa is 1. With the second boundary at 2120 ms, strict and adjusted
 kappa are both 0.940 and credited disagreement is zero.
 
+.. figure:: illustrations/analyser-time-aligned-kappa.png
+   :alt: Two speech tracks with an 80 ms difference between their transitions and a red disagreement strip.
+   :width: 100%
+
+   The tracks show the original annotation boundaries. The summary reports
+   how much of their disagreement received credit at the chosen tolerance.
+
 A nonzero constant translation of either the entire sample grid or the whole
 matching sequence of at least two behavioural transitions flags a possible
 clock offset. A later observation window can produce the same pattern.
@@ -260,7 +290,11 @@ which brief events deserve closer inspection.
 The results table and semicolon-delimited ``*_time_aligned_<tolerance>ms.csv``
 export show one row per pair, site, and code. Inspect the shared start, end,
 compared duration, strict disagreement, credited duration, and warnings
-alongside the scores. Subtract credited duration from strict disagreement
+alongside the scores. Select a row to display the two recording tracks
+over their shared interval. The red strip marks disagreement on the original
+clock, including time later credited by the tolerance calculation. Use
+**Zoom in**, **Zoom out**, **Earlier**, and **Later** to inspect a short change.
+Subtract credited duration from strict disagreement
 to obtain remaining disagreement. For background on time-based and event-based
 agreement, see `Bakeman, Quera & Gnisci (2009)
 <https://doi.org/10.3758/BRM.41.1.137>`_.

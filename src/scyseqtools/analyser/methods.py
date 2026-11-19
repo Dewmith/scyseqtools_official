@@ -101,10 +101,7 @@ class Method():
         self.parent = parent
         doc_lines = meth.__doc__
         self.method = meth
-        annotations = meth.__annotations__
-        # retval = annotations.pop('return')
-        _ = annotations.pop('return')
-        args = annotations
+        args = {k: v for k, v in meth.__annotations__.items() if k != "return"}
 
         # Documentation
         doc_frame = tkinter.LabelFrame(self.tab, text='Documentation')
@@ -145,10 +142,9 @@ class Method():
         if not os.path.exists(initialdir):
             pathlib.Path(initialdir).mkdir()
 
-        outdir = None
-        while not outdir:
-            outdir = tkinter.filedialog.askdirectory(initialdir=initialdir,
-                                                     mustexist=True)
+        outdir = tkinter.filedialog.askdirectory(initialdir=initialdir, mustexist=True)
+        if not outdir:
+            return
         if isinstance(output, TableExport):
             with open(os.path.join(outdir, output.filename), 'w', encoding='utf-8') as datafile:
                 datafile.writelines(output.lines)

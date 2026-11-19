@@ -1,7 +1,7 @@
 flowchart TD
     start["Launch scyseq-analyser"] --> directory["Choose data directory"]
     directory --> files["Select one or more compatible Codix data files"]
-    files --> load["Click Select file(s)"]
+    files --> load["Load checked files and review the loaded count"]
     load --> validate{"Files load successfully?"}
     validate -->|No| fix["Fix folder, file, site, or code compatibility"]
     fix --> directory
@@ -18,8 +18,15 @@ flowchart TD
     method --> join["Join: select two sequences to recode together"]
     method --> change["Change code: select sequence, new name, correspondence, and alphabet"]
 
-    kappa --> launch["Launch or compute analysis"]
-    statistics --> launch
+    kappa --> preview["Review comparison heatmap or recording tracks and exact values"]
+    statistics --> bars["Review label-frequency bars and exact values by file"]
+    preview --> export{"Choose output folder?"}
+    bars --> export
+    export -->|Yes| report["Save CSV and printable offline HTML report"]
+    export -->|Cancel| pending["Keep result in tab and export later"]
+    pending --> export
+    method --> sync["Synchronization: select two sites and a shared code"]
+    sync --> launch["Launch analysis"]
     mi --> launch
     complexity --> launch
     transition --> launch

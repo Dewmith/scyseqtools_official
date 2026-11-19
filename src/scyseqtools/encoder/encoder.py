@@ -7,7 +7,6 @@ We need doc
 """
 
 from pathlib import Path
-import webbrowser
 # import json
 #import time
 
@@ -20,12 +19,13 @@ import tkinter.simpledialog
 
 # from datetime import datetime # datetime.now().strftime('%c')
 
+from scyseqtools.applicationmenu import ApplicationMenu
 import scyseqtools.encoder.utils as U
 from scyseqtools.encoder.infoframe import InfoFrame
 from scyseqtools.encoder.playercontrol import PlayerControl
 from scyseqtools.encoder.playerbackends import prepare_video_display
 from scyseqtools.encoder.sessionpanel import SessionPanel
-from scyseqtools.encoder.applicationmenu import ApplicationMenu, EncoderHome
+from scyseqtools.encoder.applicationmenu import EncoderHome
 from scyseqtools.encoder.codingframe import FrameworkFrame
 from scyseqtools.encoder.config import (
     get_cwd_file_path,
@@ -195,28 +195,6 @@ class Application(tkinter.Tk):
         self.encoder_layout = get_encoder_layout(self.cwd)
         self.info = InfoFrame(self, states=states)
         self._place_session(self.detached_layout)
-
-    def report_issue(self):
-        self._open_project_page("/issues/new")
-
-    def about_handler(self):
-        self._open_project_page("#readme")
-
-    def _open_project_page(self, destination):
-        url = "https://github.com/scyseq-tools/scyseqtools" + destination
-        try:
-            if webbrowser.open_new_tab(url):
-                return
-        except (OSError, webbrowser.Error):
-            pass
-
-        if tkinter.messagebox.askyesno(
-            "Could not open browser",
-            f"Copy this link to the clipboard so you can open it yourself?\n\n{url}",
-            parent=self,
-        ):
-            self.clipboard_clear()
-            self.clipboard_append(url)
 
     @property
     def detached_layout(self):

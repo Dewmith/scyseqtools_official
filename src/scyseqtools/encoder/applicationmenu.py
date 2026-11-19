@@ -1,6 +1,5 @@
-"""Home screen and Help menu for the encoder."""
+"""Home screen for the encoder."""
 
-import tkinter
 from tkinter import font, ttk
 
 
@@ -35,14 +34,3 @@ class EncoderHome(ttk.Frame):
     def hide(self):
         self.grid_remove()
         self.master.grid_anchor("nw")
-
-
-class ApplicationMenu(tkinter.Menu):
-    """Keep project help and issue reporting available throughout the encoder."""
-
-    def __init__(self, master):
-        super().__init__(master, tearoff=0)
-        help_menu = tkinter.Menu(self, tearoff=0)
-        self.add_cascade(label='Help', menu=help_menu)
-        help_menu.add_command(label='Report issue', command=master.report_issue)
-        help_menu.add_command(label='About', command=master.about_handler)

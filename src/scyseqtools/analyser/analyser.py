@@ -6,6 +6,7 @@ from scyseqtools.analyser.kappa import KappaTool
 from scyseqtools.analyser.methods import Method
 from scyseqtools.analyser.synchronization import SynchronizationTool
 from scyseqtools.analyser.symbolix import Symbolix
+from scyseqtools.applicationmenu import ApplicationMenu
 
 import os
 import sys
@@ -186,6 +187,9 @@ class Application(tkinter.Tk):
         tkinter.Tk.__init__(self)
         self.protocol("WM_DELETE_WINDOW", self.destroy)
         Pmw.initialise(self)
+        self.title("scyseqtools")
+        self.menu = ApplicationMenu(master=self)
+        self.configure(menu=self.menu)
 
         self.data = {} # data[file][...]
         self.metadata = {}

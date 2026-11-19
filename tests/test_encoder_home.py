@@ -5,6 +5,7 @@ from unittest.mock import Mock
 
 import pytest
 
+from scyseqtools import applicationmenu
 from scyseqtools.encoder import config, encoder, playercontrol
 
 
@@ -272,7 +273,7 @@ def test_cancel_first_save_keeps_session_open(launch, tmp_path, monkeypatch):
 def test_help_menu_on_home_screen_and_in_session(launch, monkeypatch):
     app = launch()
     open_tab = Mock(return_value=True)
-    monkeypatch.setattr(encoder.webbrowser, "open_new_tab", open_tab)
+    monkeypatch.setattr(applicationmenu.webbrowser, "open_new_tab", open_tab)
     destinations = [
         ("Report issue", "https://github.com/scyseq-tools/scyseqtools/issues/new"),
         ("About", "https://github.com/scyseq-tools/scyseqtools#readme"),
@@ -298,17 +299,17 @@ def test_help_menu_on_home_screen_and_in_session(launch, monkeypatch):
 
 @pytest.mark.parametrize("error,copy_link", [
     (None, True),
-    (encoder.webbrowser.Error("No browser available"), False),
+    (applicationmenu.webbrowser.Error("No browser available"), False),
     (OSError("Browser launch failed"), True),
 ])
 def test_help_link_browser_failure(monkeypatch, error, copy_link):
     app = Mock()
     open_tab = Mock(return_value=False, side_effect=error)
     ask_copy = Mock(return_value=copy_link)
-    monkeypatch.setattr(encoder.webbrowser, "open_new_tab", open_tab)
-    monkeypatch.setattr(encoder.tkinter.messagebox, "askyesno", ask_copy)
+    monkeypatch.setattr(applicationmenu.webbrowser, "open_new_tab", open_tab)
+    monkeypatch.setattr(applicationmenu.messagebox, "askyesno", ask_copy)
 
-    encoder.Application._open_project_page(app, "/issues/new")
+    applicationmenu._open_project_page(app, "/issues/new")
 
     url = "https://github.com/scyseq-tools/scyseqtools/issues/new"
     open_tab.assert_called_once_with(url)

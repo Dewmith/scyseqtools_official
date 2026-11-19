@@ -17,18 +17,16 @@ pytestmark = pytest.mark.skipif(
 @pytest.fixture
 def launch(tmp_path, monkeypatch, capsys):
     settings = tmp_path / "settings"
-    monkeypatch.setattr(config, "get_user_config_dir", lambda _: settings)
-    monkeypatch.setattr(config, "get_user_state_dir", lambda _: settings)
+    monkeypatch.setattr(config, "get_user_config_dir", lambda config_dir=None: settings)
+    monkeypatch.setattr(config, "get_user_state_dir", lambda config_dir=None: settings)
+    settings.mkdir()
     apps = []
 
-    def open_encoder(layout="embedded", dpi=96):
-        (tmp_path / "config.ini").write_text(f"[application]\nencoder_layout = {layout}\n")
-
-        def choose_directory(parent, **kwargs):
-            parent.tk.call("tk", "scaling", dpi / 72)
-            return str(tmp_path)
-
-        monkeypatch.setattr(encoder.filedialog, "askdirectory", choose_directory)
+    def open_encoder(layout="embedded"):
+        (settings / config.CONFIG_FILENAME).write_text(
+            f"[application]\nencoder_layout = {layout}\ndefault_cwd = {tmp_path}\n",
+            encoding="utf-8",
+        )
         # Tcl caches Windows standard handles for the interpreter's lifetime.
         with capsys.disabled():
             app = encoder.Application()
@@ -43,8 +41,15 @@ def launch(tmp_path, monkeypatch, capsys):
 
 
 @pytest.mark.parametrize("dpi", [96, 144], ids=["100-percent", "150-percent"])
-def test_home_layout_and_keyboard_order(launch, dpi):
-    app = launch(dpi=dpi)
+def test_home_layout_and_keyboard_order(launch, dpi, monkeypatch):
+    home_class = encoder.EncoderHome
+
+    def scaled_home(master):
+        master.tk.call("tk", "scaling", dpi / 72)
+        return home_class(master)
+
+    monkeypatch.setattr(encoder, "EncoderHome", scaled_home)
+    app = launch()
     assert app.title() == "scyseqtools"
     assert app.menu.index("end") == 0
     assert app.menu.entrycget(0, "label") == "Help"
@@ -52,7 +57,7 @@ def test_home_layout_and_keyboard_order(launch, dpi):
     heading, *buttons = app.home.winfo_children()
     assert heading.cget("text") == "scyseqtools"
     assert [button.cget("text") for button in buttons] == [
-        "Define a new code", "Start a new session", "Retrieve a session", "Quit",
+        "Define a new code", "Start a new session", "Retrieve a session",
     ]
     assert len({button.winfo_width() for button in buttons}) == 1
     for widget in (heading, *buttons):
@@ -64,7 +69,7 @@ def test_home_layout_and_keyboard_order(launch, dpi):
     for current, following in zip(buttons, buttons[1:] + buttons[:1]):
         assert current.tk_focusNext() == following
 
-    buttons[-1].invoke()
+    app.tk.call(app.protocol("WM_DELETE_WINDOW"))
     assert not app.tk.call("info", "commands", ".")
 
 
@@ -82,7 +87,7 @@ def test_saving_code_returns_to_home(launch, tmp_path, monkeypatch):
     form.tmpsite.set("Participant")
     form.codelist.selection_set(0)
     form.record_site()
-    code_file = tmp_path / "data" / "observation.jod"
+    code_file = tmp_path / "observation.jod"
     monkeypatch.setattr(encoder.filedialog, "asksaveasfilename", lambda **kw: str(code_file))
     confirm = Mock(return_value=False)
     monkeypatch.setattr(encoder.tkinter.messagebox, "askokcancel", confirm)
@@ -106,7 +111,7 @@ def back_button(window):
 @pytest.mark.parametrize("layout", ["embedded", "detached"])
 def test_back_from_unstarted_workflows(launch, layout, monkeypatch):
     app = launch(layout)
-    directory = app.cwd
+    directory = app.browse_folder()
     confirm = Mock(return_value=False)
     choose_directory = Mock()
     monkeypatch.setattr(encoder.tkinter.messagebox, "askokcancel", confirm)
@@ -117,7 +122,7 @@ def test_back_from_unstarted_workflows(launch, layout, monkeypatch):
         back_button(app).invoke()
         app.update()
         assert app.home.winfo_viewable()
-        assert app.cwd == directory
+        assert app.browse_folder() == directory
         assert app.title() == "scyseqtools"
         assert app.focus_lastfor() == app.home.buttons[0]
     confirm.assert_not_called()
@@ -143,7 +148,7 @@ def test_back_with_unsaved_code(launch, monkeypatch):
 
 @pytest.mark.parametrize("layout,origin", [
     ("embedded", "Information"), ("detached", "Information"),
-    ("detached", "Control"), ("detached", "Coding framework"),
+    ("detached", "Control"), ("detached", "Coding framework"), ("detached", "Video"),
 ])
 @pytest.mark.parametrize("resume", [False, True], ids=["new", "retrieved"])
 def test_back_during_playback(launch, tmp_path, monkeypatch, layout, origin, resume):
@@ -151,8 +156,12 @@ def test_back_during_playback(launch, tmp_path, monkeypatch, layout, origin, res
     player = Mock()
     player.get_length.return_value = 60000
     player.get_time.return_value = 0
-    monkeypatch.setattr(playercontrol, "create_player_backend", lambda *args: player)
-    media = tmp_path / "clip.wav"
+    backend = Mock(return_value=player)
+    monkeypatch.setattr(playercontrol, "create_player_backend", backend)
+    has_video = origin == "Video"
+    tracks = {"Video", "Audio"} if has_video else {"Audio"}
+    monkeypatch.setattr(encoder.U, "media_track_types", lambda filename: tracks)
+    media = tmp_path / ("clip.mp4" if has_video else "clip.wav")
     media.touch()
     code = tmp_path / "scheme.jod"
     scheme = {"filename": code.as_posix(), "codes": {"gaze": ["away"]},
@@ -164,22 +173,35 @@ def test_back_during_playback(launch, tmp_path, monkeypatch, layout, origin, res
     data.write_text(saved)
     if resume:
         app.retrieve_session()
-        monkeypatch.setattr(encoder.U, "is_valid_media", lambda path: True)
-        app.info.read_data(str(data))
+        assert app.info.read_data(str(data))
         assert app.recorded_steps == {1}
     else:
         app.start_session()
-        app.make_media_player(str(media))
-        app.make_coding_frame(str(code))
+        choose_file = Mock(side_effect=[media.as_posix(), code.as_posix()])
+        monkeypatch.setattr(encoder.filedialog, "askopenfilename", choose_file)
+        app.info.ask_media()
+        app.info.ask_code()
+        assert app.state["code_loaded"]
     app.update()
     window = {"Information": app, "Control": app._control_window,
-              "Coding framework": app._coding_window}[origin]
-    windows = [w for w in (app._control_window, app._coding_window) if w]
+              "Coding framework": app._coding_window, "Video": app._video_window}[origin]
+    windows = [w for w in (app._control_window, app._coding_window, app._video_window) if w]
+    surface_id = app.video_surface.winfo_id() if has_video else None
     control = app.control
     control.step_play(30)
     job = control._step_after_id
     control.step_play(30)
     assert control._step_after_id == job
+    for detached in (layout == "embedded", layout == "detached"):
+        app.info.detach_check.invoke()
+        app.update()
+        assert app.info.detach_windows.get() == detached
+        assert all(w.winfo_toplevel() is (w if detached else app) for w in windows)
+        if has_video:
+            assert app.video_surface.winfo_id() == surface_id
+        assert app.control is control and control._step_after_id == job
+        assert job in app.tk.call("after", "info")
+    backend.assert_called_once_with("vlc", media.as_posix(), surface_id)
     confirm = Mock(side_effect=[False, True])
     monkeypatch.setattr(encoder.tkinter.messagebox, "askokcancel", confirm)
     button = back_button(window)
@@ -215,6 +237,7 @@ def test_session_buttons_open_the_selected_workflow(launch, layout, action, stat
     app.update()
     assert not app.home.winfo_ismapped()
     assert app.info.winfo_viewable()
+    assert app.info.detach_windows.get() == (layout == "detached")
     assert tuple(b.cget("state") for b in
                  (app.info.media_load, app.info.code_load, app.info.data_load)) == states
     if layout == "embedded":
@@ -225,11 +248,23 @@ def test_session_buttons_open_the_selected_workflow(launch, layout, action, stat
     assert not app.tk.call("info", "commands", ".")
 
 
-def test_cancel_directory_exits_before_home(launch, tmp_path, monkeypatch, capsys):
-    monkeypatch.setattr(encoder.filedialog, "askdirectory", lambda **kwargs: "")
-    monkeypatch.setattr(encoder, "EncoderHome", lambda app: pytest.fail("Home opened on cancel"))
-    with capsys.disabled():
-        encoder._run_application()
+def test_cancel_first_save_keeps_session_open(launch, tmp_path, monkeypatch):
+    choose_directory = Mock(return_value="")
+    choose_filename = Mock()
+    monkeypatch.setattr(encoder.filedialog, "askdirectory", choose_directory)
+    monkeypatch.setattr(encoder.filedialog, "asksaveasfilename", choose_filename)
+    app = launch()
+    assert app.home.winfo_viewable()
+    app.start_session()
+    choose_directory.assert_not_called()
+
+    assert app.info.save_data(app.container, app) is False
+    choose_directory.assert_called_once()
+    assert choose_directory.call_args.kwargs["initialdir"] == tmp_path
+    choose_filename.assert_not_called()
+    app.update()
+    assert app.info.winfo_viewable()
+    assert app.info.session_path is None
     assert not (tmp_path / "settings" / config.CWD_FILENAME).exists()
     assert not (tmp_path / "data").exists()
 

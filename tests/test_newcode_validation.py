@@ -19,7 +19,7 @@ def save_form(tmp_path, monkeypatch):
         period=Mock(get=Mock(return_value="2.5")),
         codes_container={"gaze": ["absent", "present"]},
         sites_container={"Participant": ["gaze"]},
-        application=SimpleNamespace(cwd=str(tmp_path), finish_new_code=Mock()),
+        application=SimpleNamespace(browse_folder=Mock(return_value=tmp_path), finish_new_code=Mock()),
         destroy=Mock(),
         saved=False,
     )
@@ -27,12 +27,10 @@ def save_form(tmp_path, monkeypatch):
         error=Mock(),
         info=Mock(),
         save=Mock(return_value=str(tmp_path / "framework")),
-        create_directory=Mock(wraps=newcode.U.ensure_subdirectory),
     )
     monkeypatch.setattr(newcode.tkinter.messagebox, "showerror", dialogs.error)
     monkeypatch.setattr(newcode.tkinter.messagebox, "showinfo", dialogs.info)
     monkeypatch.setattr(newcode.tkinter.filedialog, "asksaveasfilename", dialogs.save)
-    monkeypatch.setattr(newcode.U, "ensure_subdirectory", dialogs.create_directory)
     return form, dialogs
 
 
@@ -43,7 +41,7 @@ def assert_invalid_submission(form, dialogs, tmp_path):
     title, message = dialogs.error.call_args.args
     assert title == "Invalid coding framework"
     dialogs.save.assert_not_called()
-    dialogs.create_directory.assert_not_called()
+    form.application.browse_folder.assert_not_called()
     dialogs.info.assert_not_called()
     form.application.finish_new_code.assert_not_called()
     form.destroy.assert_not_called()
@@ -123,7 +121,9 @@ def test_valid_framework_saves_json_and_html(regular, save_form, tmp_path):
     dialogs.error.assert_not_called()
     dialogs.info.assert_not_called()
     dialogs.save.assert_called_once()
-    dialogs.create_directory.assert_called_once_with(str(tmp_path), "data")
+    assert dialogs.save.call_args.kwargs["initialdir"] == tmp_path
+    assert dialogs.save.call_args.kwargs["defaultextension"] == ".jod"
+    assert {path.name for path in tmp_path.iterdir()} == {"framework.jod", "framework.html"}
     saved_path = tmp_path / "framework.jod"
     specs = json.loads(saved_path.read_text(encoding="utf-8"))
     assert set(specs) == {
@@ -158,7 +158,7 @@ def test_cancel_save_keeps_form_open_without_writing_files(save_form, tmp_path):
 
     dialogs.error.assert_not_called()
     dialogs.save.assert_called_once()
-    assert not any(path.is_file() for path in tmp_path.rglob("*"))
+    assert not list(tmp_path.iterdir())
     form.application.finish_new_code.assert_not_called()
     form.destroy.assert_not_called()
     assert not form.saved

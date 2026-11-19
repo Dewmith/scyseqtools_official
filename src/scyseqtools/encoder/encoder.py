@@ -177,6 +177,7 @@ class Application(tkinter.Tk):
         """
         self._enter_workflow()
         self.newcode = NewCode(parent=self)
+        self.columnconfigure(1, weight=1)
         self.newcode.grid(row=1, column=1, sticky=U.sticky_all)
         self._editor_focus_job = self.after_idle(self.newcode.focus_first_field)
 

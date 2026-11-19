@@ -31,10 +31,12 @@ class NewCode(tkinter.LabelFrame):
     def __init__(self, parent):
         tkinter.LabelFrame.__init__(self, parent)
         self.application = parent
+        self.columnconfigure(0, weight=1)
 
         # Project
         projectframe = tkinter.LabelFrame(self, text="Project")
         projectframe.grid(sticky=U.sticky_all)
+        projectframe.columnconfigure(2, weight=1)
 
         self.project_name = tkinter.StringVar()
 
@@ -46,7 +48,7 @@ class NewCode(tkinter.LabelFrame):
         description_label = tkinter.Label(projectframe, text='Description: ')
         description_label.grid(row=1, column=0)
         self.description_text = tkinter.Text(projectframe, height=5)
-        self.description_text.grid(row=1, column=2)
+        self.description_text.grid(row=1, column=2, sticky=tkinter.EW)
 
         # specifications
         specframe = tkinter.LabelFrame(self, text='Specifications')
@@ -70,6 +72,11 @@ class NewCode(tkinter.LabelFrame):
         self.period_entry.grid(row=0, column=3)
         unit = tkinter.Label(specframe, text='Seconds')
         unit.grid(row=0, column=4)
+        sampling_hint = tkinter.Label(
+            specframe, justify=tkinter.LEFT, wraplength='240p',
+            text='For fixed intervals, check Regular sampling. Enter 2 to sample every 2 seconds.',
+        )
+        sampling_hint.grid(row=0, column=5, sticky=tkinter.W, padx='4p')
 
         # codes
         codeframe = tkinter.LabelFrame(self, text='Coding definitions')
@@ -90,9 +97,15 @@ class NewCode(tkinter.LabelFrame):
         code_button = tkinter.Button(codeframe, text='Record',
                                                 command=self.record_code)
         code_button.grid(row=0, column=5, sticky=tkinter.E)
+        code_hint = tkinter.Label(
+            codeframe, justify=tkinter.LEFT, wraplength='180p',
+            text='Name the code (e.g. movement). Separate its items with commas '
+                 '(e.g. still, moving), then click Record.',
+        )
+        code_hint.grid(row=0, column=6, sticky=tkinter.W, padx='4p')
 
         self.recorded_codes = tkinter.LabelFrame(codeframe, text='Recorded codes')
-        self.recorded_codes.grid(row=1, column=0, columnspan=6, sticky=U.sticky_all)
+        self.recorded_codes.grid(row=1, column=0, columnspan=7, sticky=U.sticky_all)
 
         # sites
         siteframe = tkinter.LabelFrame(self, text='Recording sites')
@@ -121,8 +134,14 @@ class NewCode(tkinter.LabelFrame):
         site_button = tkinter.Button(siteframe, text='Record',
                                                 command=self.record_site)
         site_button.grid(row=0, column=5, sticky=(tkinter.N, tkinter.E))
+        site_hint = tkinter.Label(
+            siteframe, justify=tkinter.LEFT, wraplength='164p',
+            text='Name the site (e.g. Participant). Select one or more entries '
+                 'in Available codes, then click Record.',
+        )
+        site_hint.grid(row=0, column=6, sticky=tkinter.NW, padx='4p')
         self.recorded_sites = tkinter.LabelFrame(siteframe, text='Recorded sites')
-        self.recorded_sites.grid(row=1, column=0, columnspan=6, sticky=U.sticky_all)
+        self.recorded_sites.grid(row=1, column=0, columnspan=7, sticky=U.sticky_all)
 
         # save all specs
         savebutton = tkinter.Button(self, text='Save code',

@@ -1,3 +1,4 @@
+import json
 import os
 import sys
 from tkinter import filedialog
@@ -6,7 +7,86 @@ from unittest.mock import Mock, call
 import pytest
 
 from scyseqtools import applicationmenu
-from scyseqtools.analyser.analyser import Application
+from scyseqtools.analyser.analyser import Application, _load_codix_appstate
+
+
+@pytest.fixture
+def framework_files(tmp_path):
+    reference = {
+        "version": "0.9",
+        "media": "reference.mp4",
+        "times": [0, 1000],
+        "code": {"codes": {"Gaze": ["Away", "Task"], "Speech": ["Silent", "Speaking"]}},
+        "data": {"Room": {"Gaze": [1], "Speech": [0]}, "Observer": {"Gaze": [0]}},
+    }
+    (tmp_path / "reference.cdx").write_text(json.dumps(reference), encoding="utf-8")
+
+    def load_pair(**changes):
+        candidate = {**reference, **changes}
+        (tmp_path / "candidate.cdx").write_text(json.dumps(candidate), encoding="utf-8")
+        return _load_codix_appstate(tmp_path, ("reference.cdx", "candidate.cdx"))
+
+    return reference, load_pair
+
+
+@pytest.mark.parametrize(("sites", "difference"), [
+    (("Room",), "missing site 'Observer'"),
+    (("Room", "Observer", "Outside"), "unexpected site 'Outside'"),
+    (("room", "Observer"), "missing site 'Room', unexpected site 'room'"),
+])
+def test_load_rejects_different_sites(framework_files, sites, difference):
+    reference, load_pair = framework_files
+    data = {site: reference["data"].get(site, reference["data"]["Room"]) for site in sites}
+    with pytest.raises(ValueError) as error:
+        load_pair(data=data)
+    assert "candidate.cdx" in str(error.value) and "reference.cdx" in str(error.value)
+    assert difference in str(error.value)
+
+
+@pytest.mark.parametrize(("categories", "difference"), [
+    (("Gaze",), "missing category 'Speech'"),
+    (("Gaze", "Speech", "Movement"), "unexpected category 'Movement'"),
+    (("gaze", "Speech"), "missing category 'Gaze', unexpected category 'gaze'"),
+])
+def test_load_rejects_different_categories_at_a_site(framework_files, categories, difference):
+    reference, load_pair = framework_files
+    data = {**reference["data"], "Room": {category: [0] for category in categories}}
+    codes = {**reference["code"]["codes"], "Movement": ["Still"], "gaze": ["Away", "Task"]}
+    with pytest.raises(ValueError) as error:
+        load_pair(data=data, code={"codes": codes})
+    assert "Site 'Room'" in str(error.value)
+    assert difference in str(error.value)
+
+
+@pytest.mark.parametrize("labels", [["Away", "Elsewhere"], ["Task", "Away"], ["Away", "Task", "Other"]])
+def test_load_rejects_different_state_labels(framework_files, labels):
+    reference, load_pair = framework_files
+    codes = {**reference["code"]["codes"], "Gaze": labels}
+    with pytest.raises(ValueError, match="State labels differ at site 'Room', category 'Gaze'") as error:
+        load_pair(code={"codes": codes})
+    assert "Expected ('Away', 'Task')" in str(error.value)
+    assert f"Found {tuple(labels)!r}" in str(error.value)
+
+
+def test_load_accepts_the_same_framework_in_a_different_order(framework_files):
+    _, load_pair = framework_files
+    state = load_pair(
+        media="different.mp4", times=[500, 700, 1500],
+        data={"Observer": {"Gaze": [0, 1]}, "Room": {"Speech": [0, 1], "Gaze": [1, 0]}},
+    )
+    assert state["files"] == ["reference.cdx", "candidate.cdx"]
+    assert state["sites"] == ["Room", "Observer"]
+    assert state["codes"] == {"Room": ["Gaze", "Speech"], "Observer": ["Gaze"]}
+    assert state["metadata"]["candidate.cdx"]["times"] == [500, 700, 1500]
+    assert len(state["data"]["candidate.cdx"]["Room"]["Gaze"]) == 2
+
+
+def test_load_checks_a_framework_with_no_sites(tmp_path, framework_files):
+    empty = {"version": "0.9", "code": {"codes": {}}, "data": {}}
+    (tmp_path / "empty.cdx").write_text(json.dumps(empty), encoding="utf-8")
+    assert _load_codix_appstate(tmp_path, ("empty.cdx",))["data"] == {"empty.cdx": {}}
+    with pytest.raises(ValueError, match="unexpected site"):
+        _load_codix_appstate(tmp_path, ("empty.cdx", "reference.cdx"))
 
 
 def test_get_directory_lists_only_cdx_files(monkeypatch, tmp_path):
@@ -24,7 +104,7 @@ def test_get_directory_lists_only_cdx_files(monkeypatch, tmp_path):
 
     choose_directory = Mock(side_effect=[str(mixed_dir), str(no_cdx_dir)])
     monkeypatch.setattr(filedialog, "askdirectory", choose_directory)
-    app = Mock(spec=["ddir", "available", "_clear_loaded_files"])
+    app = Mock(spec=["ddir", "available", "_clear_file_preview", "_clear_loaded_files"])
 
     Application.get_directory(app)
     (visible_files,), _ = app.available.setlist.call_args
@@ -32,6 +112,7 @@ def test_get_directory_lists_only_cdx_files(monkeypatch, tmp_path):
 
     Application.get_directory(app)
     app.available.setlist.assert_called_with([])
+    assert app._clear_file_preview.call_count == 2
 
 
 @pytest.mark.skipif(

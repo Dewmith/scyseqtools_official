@@ -8,6 +8,7 @@ from scyseqtools.analyser.synchronization import SynchronizationTool
 from scyseqtools.analyser.symbolix import Symbolix
 from scyseqtools.analyser.statistics import StatisticsTool
 from scyseqtools.analyser.resultpanel import release_results
+from scyseqtools.analyser.visualizations import VisualizationsTool
 from scyseqtools.applicationmenu import ApplicationMenu
 
 import os
@@ -255,10 +256,11 @@ class Application(tkinter.Tk):
         quit_but = tkinter.Button(config_frame, text='Quit', command=self.request_exit)
         quit_but.grid(column=0, row=4)
 
+        self.visualizations_tool = VisualizationsTool(self)
         self.kappa_tool = KappaTool(self)
         self.synchronization_tool = SynchronizationTool(self)
         available_meth = inspect.getmembers(Symbolix, predicate=inspect.isfunction)
-        self.methods = [self.kappa_tool, self.synchronization_tool]
+        self.methods = [self.visualizations_tool, self.kappa_tool, self.synchronization_tool]
         for name, method in available_meth:
             if name == "statistics":
                 self.statistics_tool = StatisticsTool(self)

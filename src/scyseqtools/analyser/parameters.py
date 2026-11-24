@@ -154,7 +154,7 @@ class InputSequence(tkinter.Frame):
             """
             site_index = s_choice.curselection()[0]
             codes = self.codes[self.sites[int(site_index)]]
-            self.codelist.set(' '.join(codes))
+            self.codelist.set(tuple(codes))
 
         tkinter.Frame.__init__(self, master)
         self.sitelist = tkinter.StringVar()
@@ -179,5 +179,5 @@ class InputSequence(tkinter.Frame):
         """
         self.sites = state['sites']
         self.codes = state['codes']
-        self.sitelist.set(' '.join(self.sites))
+        self.sitelist.set(tuple(self.sites))
         self.codelist.set('')

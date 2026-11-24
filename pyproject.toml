@@ -17,6 +17,7 @@ classifiers = [
 
 dependencies = [
   "scyseq",
+  "matplotlib>=3.6",
   "python-vlc",
   "numpy",
   "Pmw",

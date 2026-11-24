@@ -3,6 +3,7 @@ Module to deal with the methods exposed by symbolix
 """
 import tkinter
 import tkinter.filedialog
+from tkinter import messagebox, ttk
 
 import pathlib
 
@@ -15,6 +16,8 @@ import sys
 
 from scyseqtools.analyser.parameters import Parameter
 from scyseqtools.analyser.exports import SequenceExports, TableExport
+from scyseqtools.analyser.pairing import Track
+from scyseqtools.analyser.visualizations import INDEPENDENCE, set_choices
 # import utils as U
 # import symbolix
 
@@ -119,6 +122,28 @@ class Method():
                                     command=self.launch)
         launch_but.grid(sticky=tkinter.W)
 
+        if self.name == "mutual_information":
+            graph_controls = ttk.Frame(self.tab, padding=(0, 8))
+            graph_controls.grid(sticky="w")
+            ttk.Label(graph_controls, text="Recording").pack(side="left")
+            self.graph_recording = ttk.Combobox(graph_controls, state="readonly", width=28)
+            self.graph_recording.pack(side="left", padx=6)
+            self.graph_button = ttk.Button(graph_controls, text="View contributions",
+                                           command=self.view_contributions, state="disabled")
+            self.graph_button.pack(side="left")
+
+    def view_contributions(self):
+        filename = self.graph_recording.get()
+        try:
+            selections = [param.value.get() for param in self.parameters]
+        except IndexError:
+            messagebox.showerror("Could not view contributions",
+                                 "Select a site and code for both inputs.", parent=self.tab)
+            return
+        first, second = (Track(filename, item["site"], item["code"]) for item in selections)
+        self.parent.visualizations_tool.open_graph(INDEPENDENCE, first, second,
+                                                   dialog_parent=self.tab)
+
     def launch(self):
         """
         Run the analysis and save its explicit table or sequence-export result.
@@ -191,6 +216,9 @@ class Method():
         self.metadata = state.get('metadata', {})
         for param in self.parameters:
             param.update(state)
+        if self.name == "mutual_information":
+            set_choices(self.graph_recording, self.selected_files)
+            self.graph_button.state(["!disabled"] if self.selected_files else ["disabled"])
 
     def _source_metadata(self, index):
         """

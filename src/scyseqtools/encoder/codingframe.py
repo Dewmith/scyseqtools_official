@@ -20,12 +20,15 @@ import scyseqtools.encoder.utils as U
 
 class FrameworkFrame(tkinter.Frame):
 
-    def __init__(self, parent, filename, application=None):
-
-# FIXME: this is complicated to have rawcode and incode...
-        rawcode, incode = self.load_code(filename)
-        self.encoding = incode['code']
-        player = incode['player']
+    def __init__(self, parent, filename, application=None, definition=None):
+        if definition is None:
+            with open(filename, encoding="utf-8") as stream:
+                definition = json.load(stream)
+            definition["filename"] = Path(filename).absolute().as_posix()
+        self.encoding = {
+            site: {name: definition["codes"][name] for name in names}
+            for site, names in definition["sites"].items()
+        }
         self.application = application or parent
 
         config = load_encoder_config(
@@ -45,12 +48,12 @@ class FrameworkFrame(tkinter.Frame):
                        relief=relief)
 
 #FIXME: Not sure this is the best place...
-        rawcode['filename'] = Path(filename).absolute().as_posix()
-        self.application.container['code'] = rawcode
+        self.application.container['code'] = definition
 
         # variables related to player BUT ***taken from coding file***
-        self.player_mode = tkinter.StringVar(value=player['mode'])
-        self.period_display = tkinter.StringVar(value=str(player['period']))
+        period = definition["period"]
+        self.player_mode = tkinter.StringVar(value="continuous" if period is None else "regular")
+        self.period_display = tkinter.StringVar(value=str(period))
 
         self.spec_frame = SpecificationFrame(self)
         self.spec_frame.grid(sticky=U.sticky_all)
@@ -68,30 +71,16 @@ class FrameworkFrame(tkinter.Frame):
         self.data = {}
         self.coding_comments = []
         self.elements = [self]
+        self._displayed_values = self._editor_values()
 
-    def load_code(self, fname):
+    def _editor_values(self):
+        return (self.coding_frame.comment.get(), *(
+            widgets["var"].get() for panel in self.coding_frame.panels
+            for widgets in panel.coding.values()
+        ))
 
-        with open(fname, 'r') as ff:
-            rawcode = json.load(ff)
-
-        period = rawcode['period']
-        if period is None:
-            mode = "continuous"
-        else:
-            mode = "regular"
-
-        # sites = rawcode['sites']
-        codes = rawcode['codes']
-        codeframe = {}
-        for site, scodes in rawcode['sites'].items():
-            code_site = {}
-            for lcode in scodes:
-                code_site.update({lcode: codes[lcode]})
-            codeframe[site] = code_site
-
-        outcode = {'code': codeframe, 'player': {'mode': mode, 'period': period}}
-
-        return rawcode, outcode
+    def has_edits(self):
+        return self._editor_values() != self._displayed_values
 
     def start_processing(self):
         """
@@ -145,7 +134,7 @@ class FrameworkFrame(tkinter.Frame):
         """
         panellist = self.coding_frame.panels
 
-        if self.application.time_step in self.application.recorded_steps:
+        if time_step in self.application.recorded_steps:
             comment = self.coding_comments[time_step-1]
             self.coding_frame.comment.set(comment)
 
@@ -164,6 +153,7 @@ class FrameworkFrame(tkinter.Frame):
                 for cname, v in pan.coding.items():
                     local_str = '-'
                     v['var'].set(local_str)
+        self._displayed_values = self._editor_values()
 
     def record_state(self):
         """
@@ -181,7 +171,7 @@ class FrameworkFrame(tkinter.Frame):
 
         def with_sample(sequence, value):
             updated = sequence.copy()
-            if step in self.application.recorded_steps:
+            if step <= len(updated):
                 updated[step - 1] = value
             else:
                 updated.append(value)
@@ -189,11 +179,12 @@ class FrameworkFrame(tkinter.Frame):
 
         data = self.data.copy()
         for pan in panels:
-            data[pan.name] = self.data[pan.name].copy()
+            site_data = self.data.get(pan.name, {})
+            data[pan.name] = site_data.copy()
             for name, widgets in pan.coding.items():
                 symbol = widgets["var"].get()
                 value = self.encoding[pan.name][name].index(symbol)
-                data[pan.name][name] = with_sample(self.data[pan.name][name], value)
+                data[pan.name][name] = with_sample(site_data.get(name, []), value)
         comments = with_sample(self.coding_comments, self.coding_frame.comment.get())
         record = dict(self.application.container, data=data, comments=comments)
         if not self.application.info.save_data(record, self.winfo_toplevel()):
@@ -205,6 +196,9 @@ class FrameworkFrame(tkinter.Frame):
         self.application.recorded_steps.add(step)
         self.config_processing_buttons("disabled")
         self.application.context = "processing"
+        self.display_codes(step)
+        self.application.code_history.recorded(data, step, self.application.step_time(step))
+        self.application.code_history.select(step, reveal=True)
 
     def change_color(self, event):
         colortuple = askcolor()

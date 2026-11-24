@@ -74,12 +74,25 @@ class VlcPlayerBackend:
             raise
 
     def load(self, file_name):
+        import vlc
+
         media = self._player.set_mrl(file_name)
         media.release()  # The player retains its own reference.
-        # Warm VLC up so duration and audio initialization are available.
-        self._player.play()
-        time.sleep(1)
-        self.pause()
+        # VLC accepts play asynchronously and ignores seeks while still opening.
+        # Expose the player to the encoder only once a paused seek can take effect.
+        if self._player.play() == -1:
+            raise PlayerBackendError("VLC could not start the selected media.")
+        deadline = time.monotonic() + 10
+        while time.monotonic() < deadline:
+            state = self._player.get_state()
+            if state == vlc.State.Paused:
+                return
+            if state == vlc.State.Playing:
+                self.pause()
+            elif state in (vlc.State.Error, vlc.State.Ended):
+                raise PlayerBackendError(f"VLC could not prepare the selected media ({state}).")
+            time.sleep(0.025)
+        raise PlayerBackendError("VLC did not finish opening the selected media in time.")
 
     def play(self):
         self._player.play()

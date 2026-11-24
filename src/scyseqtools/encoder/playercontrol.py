@@ -181,6 +181,11 @@ class PlayerControl(tkinter.LabelFrame):
         """
         if self._step_after_id is not None:
             return
+        if self.application.context == "processing":
+            if not self.application.confirm_leave_step():
+                return
+            self.application.framework.display_codes(self.application.time_step)
+            self.application.framework.config_processing_buttons("disabled")
         # if self.application.state['code_loaded'] and self.application.context != 'processing':
         #             self._root().framework.spec_frame.start_but.config(state='disabled')
         start_time = self.time
@@ -210,6 +215,10 @@ class PlayerControl(tkinter.LabelFrame):
         if self.application.context == "processing":
             self.play_but.config(state='disabled')
             self.application.time_step = '1p'
+            if self.application.time_step == 0:
+                # No interval elapsed beyond the session's initial boundary.
+                self.application.framework.config_processing_buttons("disabled")
+                return
 
             print('End PP time step: ', self.application.time_step)
 
@@ -233,6 +242,13 @@ class PlayerControl(tkinter.LabelFrame):
 #        LP: passé dans fonction playpause.
 #        if self.application.context == 'processing':
 #            self.play_but.config(state='disabled')
+
+    def pause_for_seek(self):
+        """A history jump supersedes the pending end of a regular playback step."""
+        if self._step_after_id is not None:
+            self.after_cancel(self._step_after_id)
+            self._step_after_id = None
+        self.dopause()
 
     def playpause(self):
         """
@@ -305,7 +321,8 @@ class PlayerControl(tkinter.LabelFrame):
         elif self.mode == 'regular':
             if self.period is not None:
                 if self.application.context == "processing":
-                    self.application.time_step = bck_or_fwd
+                    if self.application.confirm_leave_step():
+                        self.application.time_step = bck_or_fwd
                 else:
                     self.time = itime + bck_or_fwd * int(self.period * 1000)
         else:

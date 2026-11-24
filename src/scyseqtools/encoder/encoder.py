@@ -27,6 +27,7 @@ from scyseqtools.encoder.playerbackends import prepare_video_display
 from scyseqtools.encoder.sessionpanel import SessionPanel
 from scyseqtools.encoder.applicationmenu import EncoderHome
 from scyseqtools.encoder.codingframe import FrameworkFrame
+from scyseqtools.encoder.codehistory import CodeHistoryPanel
 from scyseqtools.encoder.config import (
     get_cwd_file_path,
     get_encoder_layout,
@@ -75,6 +76,8 @@ class Application(tkinter.Tk):
                       'data_loaded': False}
 
         self.__time_step = None
+        # Old sessions omit the initial playback position from their time array.
+        self.first_time_step = 0
 
         self.container = {'history': [], # [(date, observer, comment), ...]
                           'media': '', # path for the media file
@@ -92,6 +95,8 @@ class Application(tkinter.Tk):
         self.framework = None
         self._control_window = None
         self._coding_window = None
+        self._history_window = None
+        self.code_history = None
         self._video_window = None
         self.video_surface = None
         self.recorded_steps = set()
@@ -163,7 +168,7 @@ class Application(tkinter.Tk):
         self._close_workflow()
         self._reset_workflow()
         self._back_button.grid_remove()
-        for column in (0, 1):
+        for column in (0, 1, 2):
             self.grid_columnconfigure(column, weight=0)
         for row in (1, 2, 3):
             self.grid_rowconfigure(row, weight=0)
@@ -195,6 +200,9 @@ class Application(tkinter.Tk):
         self._enter_workflow()
         self.encoder_layout = get_encoder_layout(self.cwd)
         self.info = InfoFrame(self, states=states)
+        self._history_window = self._session_panel("Code History", row=1, column=2, rowspan=3)
+        self.code_history = CodeHistoryPanel(self._history_window, self.goto_recorded_step)
+        self.code_history.grid(row=1, column=0, sticky="nsew")
         self._place_session(self.detached_layout)
 
     @property
@@ -230,9 +238,11 @@ class Application(tkinter.Tk):
         self.title(f"ScySeqTools - {title} - version: {__version__}")
         self.columnconfigure(0, weight=1)
         self.columnconfigure(1, weight=0)
+        self.columnconfigure(2, weight=int(not detached))
         self.rowconfigure(1, weight=1)
         self.rowconfigure(3, weight=int(not detached))
         self.info.grid(row=1, column=side_column, sticky="nsew")
+        self._history_window.place_panel(detached)
         if has_video:
             self._video_window.place_panel(detached)
         if self._control_window is not None:
@@ -255,7 +265,7 @@ class Application(tkinter.Tk):
         if self.control is not None and self.control.winfo_exists():
             self.control.shutdown()
 
-        for widget in (self._control_window, self._coding_window, self._video_window,
+        for widget in (self._control_window, self._coding_window, self._video_window, self._history_window,
                        self.info, self.newcode):
             if widget is not None and widget.winfo_exists():
                 widget.destroy()
@@ -302,7 +312,7 @@ class Application(tkinter.Tk):
         self.container['media'] = Path(fname).absolute().as_posix()
         return True
 
-    def make_coding_frame(self, fname):
+    def make_coding_frame(self, fname, definition=None):
         """
         creates the coding frame
         """
@@ -311,11 +321,53 @@ class Application(tkinter.Tk):
             parent=self.coding_workspace,
             filename=fname,
             application=self,
+            definition=definition,
         )
         self.framework.grid(row=0, column=0, sticky=U.sticky_all,
                             padx=20, pady=20)
         self.state['code_loaded'] = True
+        self.code_history.set_framework(self.framework.encoding)
         self._place_session(self.detached_layout)
+
+    def restore_recording(self, record, recorded_steps):
+        self.container.update(record)
+        self.recorded_steps = recorded_steps
+        self.control.times = self.container["times"]
+        sample_times_only = recorded_steps and len(self.control.times) == len(recorded_steps)
+        self.first_time_step = 1 if sample_times_only else 0
+        self.framework.data = self.container["data"]
+        self.framework.coding_comments = record["comments"]
+        self.code_history.load(self.framework.data, {s: self.step_time(s) for s in sorted(recorded_steps)})
+
+    def step_time(self, step):
+        """Translate a coding step to the timestamp in this session's original format."""
+        return self.control.times[step - self.first_time_step]
+
+    def confirm_leave_step(self):
+        if not self.framework or not self.framework.has_edits():
+            return True
+        return tkinter.messagebox.askokcancel(
+            "Unrecorded changes", "Discard the code or comment changes to this step?",
+            parent=self.framework.winfo_toplevel(), default="cancel",
+        )
+
+    def goto_recorded_step(self, step):
+        if step not in self.recorded_steps or not self.confirm_leave_step():
+            return False
+        self.control.pause_for_seek()
+        if self.time_step is not None and self.time_step > max(self.recorded_steps):
+            # Drop only the pending playback boundary when its draft is abandoned.
+            del self.control.times[self.time_step - self.first_time_step:]
+        self._show_step(step)
+        self.framework.config_processing_buttons("normal" if self.context == "processing" else "disabled")
+        return True
+
+    def _show_step(self, step):
+        self.__time_step = step
+        self.control.time = self.step_time(step)
+        self.framework.display_codes(step)
+        self.code_history.select(step, reveal=True)
+        self.context = self.context
 
     def __make_coding_workspace(self):
         """
@@ -371,45 +423,29 @@ class Application(tkinter.Tk):
         elif value == "resume":
             self._context = "processing"
             print('Context Resume session')
-            #### leomodif : j'ai commenté le premier bouton et
-            #### je l'ai réactivé quand on clique sur record
-            self.control.config_buttons({#self.control.play_but : 'normal',
-                                    self.control.back_but : 'disabled',
-                                    self.control.forward_but : 'disabled',
-                                    self.control.mode_check : 'disabled',
+            self.control.config_buttons({self.control.mode_check : 'disabled',
                                     self.control.period_ent : 'disabled',
                                     self.control.time_ent: 'disabled'})
 
-            # assert(len(self.control.times) == 0)
-            # self.control.times.append(self.control.time)
-            # self.container['times'] = self.control.times
-            # self.container['data'] = self.framework.data
-            # self.container['media'] = self.info.media_file.get()
-
-            self.control.times = self.container['times']
-            self.framework.data = self.container['data']
-            self.framework.coding_comments = self.container['comments']
-            # self.container['media'] = self.info.media_file.get()
-
-            self.time_step = 'last_recorded'
+            if not self.control.times:
+                self.control.times.append(self.control.time)
+            step = self.time_step
+            if step not in self.recorded_steps:
+                step = max(self.recorded_steps, default=0)
+            self._show_step(step)
+            self.framework.config_processing_buttons("normal" if step in self.recorded_steps else "disabled")
             print('TIME_STEP: ', self.time_step)
 
         elif value == "processing":
+            if self.control.state != "paused":
+                self.control.config_buttons({self.control.play_but: "disabled",
+                                             self.control.back_but: "disabled",
+                                             self.control.forward_but: "disabled"})
+                return
             print('Context Processing')
             print("Recorded steps : ", self.recorded_steps)
             self.control.play_but.config(state='normal')
-            # if self.time_step == self.times_length - 1 :
-            #     self.control.forward_but.config(state='disabled')
-            #     self.control.back_but.config(state='normal')
-            # elif self.time_step == 0 :
-            #     self.control.back_but.config(state='disabled')
-            # else:
-            #     self.control.back_but.config(state='normal')
-
-            # if len(self.recorded_steps) > self.time_step :
-            #     self.control.forward_but.config(state='normal')
-
-            if self.time_step == 0 :
+            if self.time_step == self.first_time_step:
                 self.control.back_but.config(state='disabled')
             else:
                 self.control.back_but.config(state='normal')
@@ -418,8 +454,6 @@ class Application(tkinter.Tk):
                 self.control.forward_but.config(state='normal')
             else :
                 self.control.forward_but.config(state='disabled')
-
-            self.framework.display_codes(self.time_step)
 
         elif value == 'not_recorded':
             self.control.config_buttons({self.control.play_but : 'disabled',
@@ -453,46 +487,22 @@ class Application(tkinter.Tk):
     @time_step.setter
     def time_step(self, value):
 
+        last = self.times_length - 1 + self.first_time_step
         if value == '1p':
-            if self.control.time > self.control.times[-1]:
+            if self.time_step == last and self.control.time > self.step_time(last):
                 self.control.times.append(self.control.time)
-                self.__time_step += 1
-            else:
-                self.__time_step = min(self.__time_step + 1, self.times_length-1)
-                self.control.time = self.control.times[self.time_step]
-            self.framework.config_processing_buttons('normal')
-
-        elif value == 1:
-            self.__time_step = min(self.__time_step + 1, self.times_length-1)
-            self.control.time = self.control.times[self.time_step]
-            self.framework.config_processing_buttons('disabled')
-
-        elif value == -1:
-            self.__time_step = max(0, self.__time_step - 1)
-            self.control.time = self.control.times[self.time_step]
-            self.framework.config_processing_buttons('disabled')
-
+                last += 1
+            step = min(self.time_step + 1, last)
+        elif value in (1, -1):
+            step = max(self.first_time_step, min(self.time_step + value, last))
         elif value == 'last':
-            self.__time_step = self.times_length - 1
-            if self.control.times:
-                self.control.time = self.control.times[-1]
+            step = last
         elif value == 'last_recorded':
-            if self.recorded_steps:
-                self.__time_step = max(self.recorded_steps)
-            else:
-                self.__time_step = max(0, self.times_length - 1)
-            if self.control.times:
-                time_index = min(self.__time_step, self.times_length - 1)
-                self.control.time = self.control.times[time_index]
+            step = max(self.recorded_steps, default=last)
         else:
-            # raise error ?
-            pass
-
-        self.container['times'] = self.control.times
-        self.context = "processing"
-
-        print('TIME_STEP: ', self.time_step)
-        print(self.control.times)
+            return
+        self._show_step(step)
+        self.framework.config_processing_buttons("normal" if value == '1p' else "disabled")
 
 # FIXME: Not sure this is still needed
 #    def disable_load_data(self):

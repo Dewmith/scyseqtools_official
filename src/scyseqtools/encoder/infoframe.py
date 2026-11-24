@@ -63,10 +63,14 @@ def normalize_resume_data(record):
     elif len(comments) > count:
         comments = comments[:count]
 
-    if not times and count:
+    if len(times) < count:
         period = record.get("code", {}).get("period")
-        step = int(float(period) * 1000) if period else 0
-        times = [step * index for index in range(count + 1)]
+        step = round(float(period) * 1000) if period else 0
+        if times:
+            last = times[-1]
+            times.extend(last + step * i for i in range(1, count - len(times) + 1))
+        else:
+            times = [step * index for index in range(count + 1)]
 
     return {
         "times": times,
@@ -211,7 +215,12 @@ class InfoFrame(tkinter.LabelFrame):
         with open(fname, "r") as datafile:
             data = json.load(datafile)
 
-        code = data["code"]["filename"]
+        definition = data["code"]
+        code = definition.get("filename", "")
+        embedded = "sites" in definition and "codes" in definition
+        if not embedded and not os.path.isfile(code):
+            tkinter.messagebox.showinfo("Cannot load code file", code, parent=self)
+            return False
         media = data["media"]
         if not os.path.exists(media):
             tkinter.messagebox.showinfo("Cannot load media file", media, parent=self)
@@ -219,17 +228,14 @@ class InfoFrame(tkinter.LabelFrame):
         if not self._load_media(media):
             return False
         self.application.state["data_loaded"] = True
-        if os.path.exists(code):
-            self.application.make_coding_frame(code)
-            self.code_file.set(code)
-        else:
-            tkinter.messagebox.showinfo("Cannot load code file", code, parent=self)
+        self.application.make_coding_frame(code, definition=definition if embedded else None)
+        self.code_file.set(code or "Embedded in session")
 
+        data["code"] = self.application.container["code"]
         resume_state = normalize_resume_data(data)
         data["times"] = resume_state["times"]
         data["comments"] = resume_state["comments"]
-        self.application.container.update(data)
-        self.application.recorded_steps = resume_state["recorded_steps"]
+        self.application.restore_recording(data, resume_state["recorded_steps"])
         self.session_path = Path(fname)
         self.data_file.set(str(self.session_path))
         return True

@@ -9,6 +9,7 @@ from unittest.mock import Mock
 import pytest
 from scyseq.sequence import Alphabet, Sequence
 
+from scyseqtools.analyser import output_files, resultpanel, save_dialog
 from scyseqtools.analyser.analyser import Application
 from scyseqtools.analyser.kappa import sequence_kappa_result, time_kappa_result
 from scyseqtools.analyser.methods import write_codix_export
@@ -107,8 +108,8 @@ def test_graphical_workflow_from_cdx_to_exit(tmp_path, monkeypatch, capsys):
     monkeypatch.setattr(filedialog, "askdirectory", choose)
     decision = Mock(return_value=None)
     monkeypatch.setattr(messagebox, "askyesnocancel", decision)
-    overwrite = Mock(return_value=False)
-    monkeypatch.setattr(messagebox, "askyesno", overwrite)
+    conflict = Mock(return_value=SimpleNamespace(result=None))
+    monkeypatch.setattr(save_dialog, "_SaveConflictDialog", conflict)
     errors = Mock()
     monkeypatch.setattr(messagebox, "showerror", errors)
     with capsys.disabled():
@@ -157,17 +158,43 @@ def test_graphical_workflow_from_cdx_to_exit(tmp_path, monkeypatch, capsys):
         # A failure publishing the HTML leaves the CSV and a retryable result.
         choose.return_value = str(out)
         csvpath, htmlpath = old.paths(out)
-        htmlpath.mkdir()
-        overwrite.return_value = True
-        assert not stats.export()
+        publish = output_files._publish_new
+
+        def fail_html(source, target):
+            if target == htmlpath:
+                raise OSError("Could not publish HTML")
+            publish(source, target)
+
+        with monkeypatch.context() as scoped:
+            scoped.setattr(output_files, "_publish_new", fail_html)
+            assert not stats.export()
         errors.assert_called_once()
         assert stats.pending and csvpath.is_file()
-        htmlpath.rmdir()
-        overwrite.return_value = False
         assert not stats.export() and not htmlpath.exists()
-        overwrite.return_value = True
+        conflict.side_effect = lambda parent, names, existing, replace, rename: SimpleNamespace(result=replace)
+        csvpath.write_text("previous CSV")
         assert stats.export() and htmlpath.is_file()
+        assert csvpath.read_text() != "previous CSV"
         assert not stats.pending
+
+        # The HTML file alone can trigger a rename of both outputs.
+        renamed_folder = tmp_path / "renamed"
+        renamed_folder.mkdir()
+        original_csv, original_html = old.paths(renamed_folder)
+        original_html.write_text("previous HTML")
+        choose.return_value = str(renamed_folder)
+        conflict.side_effect = lambda parent, names, existing, replace, rename: SimpleNamespace(result=rename("new"))
+        assert stats.export()
+        assert conflict.call_args.args[1] == (original_html.name,)
+        assert original_html.read_text() == "previous HTML" and not original_csv.exists()
+        assert (renamed_folder / "new.csv").is_file()
+        renamed_html = renamed_folder / "new.html"
+        assert renamed_html.is_file()
+        browser = Mock(return_value=True)
+        monkeypatch.setattr(resultpanel.webbrowser, "open", browser)
+        stats.open_report.invoke()
+        browser.assert_called_once_with(renamed_html.resolve().as_uri())
+
         decision.return_value = True
         choose.return_value = ""
         app.request_exit()

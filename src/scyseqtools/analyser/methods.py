@@ -9,14 +9,16 @@ import pathlib
 
 import copy
 from datetime import datetime
+from functools import partial
 import json
-import os
 # import inspect
 import sys
 
 from scyseqtools.analyser.parameters import Parameter
 from scyseqtools.analyser.exports import SequenceExports, TableExport
+from scyseqtools.analyser.output_files import output_path, write_lines, write_outputs
 from scyseqtools.analyser.pairing import Track
+from scyseqtools.analyser.save_dialog import resolve_destinations
 from scyseqtools.analyser.visualizations import INDEPENDENCE, set_choices
 # import utils as U
 # import symbolix
@@ -161,49 +163,28 @@ class Method():
 #        except KeyError:
 #            print(output.response_body)
 
-#       Save the results
-        initialdir = os.path.join(self.parent.cwd, self.name)
-        print('initial folder: ', initialdir)
-        if not os.path.exists(initialdir):
-            pathlib.Path(initialdir).mkdir()
-
-        outdir = tkinter.filedialog.askdirectory(initialdir=initialdir, mustexist=True)
-        if not outdir:
-            return
         if isinstance(output, TableExport):
-            with open(os.path.join(outdir, output.filename), 'w', encoding='utf-8') as datafile:
-                datafile.writelines(output.lines)
+            files = [(output.filename, partial(write_lines, lines=output.lines))]
         elif isinstance(output, SequenceExports):
-            for index, export in enumerate(output.files):
-                datafile = os.path.join(outdir, export.filename)
-                source_metadata = self._source_metadata(index)
-                write_codix_export(datafile, export.sequences_by_site, source_metadata)
+            files = [(export.filename, partial(write_codix_export, dico_seqs=export.sequences_by_site,
+                                               source_metadata=self._source_metadata(index)))
+                     for index, export in enumerate(output.files)]
         else:
             raise TypeError(f'Unsupported analysis result type: {type(output).__name__}')
 
-        # Not useful since either created or must exist...
-#        if outdir is not None:
-#            if not os.path.exists(outdir):
-#                pathlib.Path(outdir).mkdir()
-
-#        if type(output) is list:
-#
-#            for ffile in result:
-#                fname = os.path.join(outdir, ffile['name'])
-#                ofid = open(fname, 'wb')
-#                ofid.write(ffile['data'].read())
-#                ofid.close()
-#
-#        elif type(result) is dict:
-#            # save file as
-#            outfile = tkinter.filedialog.asksaveasfilename(initialfile=result['name'],
-#                                                     initialdir=self.parent.ddir)
-#            if outfile is not None:
-#                ofid = open(outfile, 'wb')
-#                ofid.write(result['data'].read())
-#                ofid.close()
-#        else:
-#            raise ValueError("Do not know the type of the result")
+        try:
+            initialdir = pathlib.Path(self.parent.cwd) / self.name
+            initialdir.mkdir(exist_ok=True)
+            outdir = tkinter.filedialog.askdirectory(parent=self.parent, initialdir=str(initialdir),
+                                                     mustexist=True)
+            if not outdir:
+                return
+            groups = [(output_path(outdir, name),) for name, _ in files]
+            destinations = resolve_destinations(self.parent, groups)
+            if destinations is not None:
+                write_outputs(zip(destinations, (write for _, write in files)))
+        except (OSError, ValueError) as exc:
+            messagebox.showerror("Could not complete export", str(exc), parent=self.parent)
 
     def update_state(self, state):
         """

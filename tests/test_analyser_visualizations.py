@@ -2,6 +2,7 @@ from html import unescape
 import json
 import os
 import sys
+from types import SimpleNamespace
 from unittest.mock import Mock
 from xml.etree import ElementTree
 
@@ -11,7 +12,7 @@ from matplotlib import rc_context, rcParams
 from matplotlib.backends.backend_agg import FigureCanvasAgg
 
 from scyseq import Sequence, viz
-from scyseqtools.analyser import graph_viewer, visualizations
+from scyseqtools.analyser import graph_viewer, save_dialog, visualizations
 from scyseqtools.analyser.analyser import Application, _load_codix_appstate
 from scyseqtools.analyser.pairing import Track, validate_pair
 
@@ -297,6 +298,19 @@ def test_viewer_opens_exports_replaces_and_closes(recordings, tmp_path, monkeypa
         assert ask.call_args.kwargs["initialfile"] == (
             "sequence-plot_Recording 1_Site two_Look_ direction.svg"
         )
+
+        assert ask.call_args.kwargs["confirmoverwrite"] is False
+        destination.write_text("existing graph")
+        ask.side_effect = None
+        ask.return_value = str(destination)
+        conflict = Mock(side_effect=lambda parent, names, existing, replace, rename:
+                        SimpleNamespace(result=rename("new graph")))
+        monkeypatch.setattr(save_dialog, "_SaveConflictDialog", conflict)
+        viewer.export()
+        conflict.assert_called_once()
+        assert destination.read_text() == "existing graph"
+        renamed = destination.with_name("new graph.svg")
+        assert ElementTree.parse(renamed).findtext("svg:title", namespaces=SVG_NS) == axes.get_title()
 
         app.tk.call(viewer.protocol("WM_DELETE_WINDOW"))
         app.update()

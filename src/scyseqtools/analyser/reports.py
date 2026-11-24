@@ -3,11 +3,12 @@
 import csv
 from dataclasses import dataclass, field
 from datetime import datetime
+from functools import partial
 from html import escape
 from importlib.metadata import PackageNotFoundError, version
 import io
-from pathlib import Path
-from tempfile import NamedTemporaryFile
+
+from scyseqtools.analyser.output_files import SaveDestination, output_path, write_lines, write_outputs
 
 
 def _version(package):
@@ -76,24 +77,15 @@ table.wide,table.wide tbody{display:block}.wide thead{display:none}
         yield '</main></html>'
 
     def paths(self, folder):
-        name = Path(self.filename)
-        if name.name != self.filename or "/" in self.filename or "\\" in self.filename:
-            raise ValueError("The output filename contains a path separator. Check the site and code names.")
-        csv_path = folder / name
+        csv_path = output_path(folder, self.filename)
         return csv_path, csv_path.with_suffix(".html")
 
-    def write(self, folder):
+    def write(self, folder, *, destinations=None):
         """Stage both documents before publishing either. Each replacement is atomic."""
-        targets = self.paths(folder)
-        temporary = []
-        try:
-            for chunks in (self.csv_lines(), self.html()):
-                with NamedTemporaryFile(mode="w", encoding="utf-8", newline="",
-                                        dir=folder, delete=False) as handle:
-                    temporary.append(Path(handle.name))
-                    handle.writelines(chunks)
-            for source, target in zip(temporary, targets):
-                source.replace(target)
-        finally:
-            for path in temporary:
-                path.unlink(missing_ok=True)
+        if destinations is None:
+            destinations = tuple(SaveDestination(path, replace=True) for path in self.paths(folder))
+        csv_destination, html_destination = destinations
+        write_outputs([
+            (csv_destination, partial(write_lines, lines=self.csv_lines(), newline="")),
+            (html_destination, partial(write_lines, lines=self.html(), newline="")),
+        ])

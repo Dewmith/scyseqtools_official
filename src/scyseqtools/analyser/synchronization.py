@@ -3,6 +3,7 @@ Synchronization likelihood and direction support for the analyser GUI.
 """
 
 import csv
+from functools import partial
 import io
 import os
 import pathlib
@@ -15,6 +16,8 @@ import Pmw
 
 from scyseq.information import mutual_information
 from scyseq.recurrence import mcr, synchronization_likelihood
+from scyseqtools.analyser.output_files import output_path, write_lines, write_outputs
+from scyseqtools.analyser.save_dialog import resolve_destinations
 
 
 TABLE_EXT = ".csv"
@@ -327,22 +330,26 @@ class SynchronizationTool:
             )
             return
 
-        outdir = tkinter.filedialog.askdirectory(initialdir=initialdir,
+        outdir = tkinter.filedialog.askdirectory(parent=self.parent, initialdir=initialdir,
                                                  mustexist=True)
         if not outdir:
             return
 
-        outfile = os.path.join(outdir,
-                               synchronization_filename(source, target, code))
         try:
-            with open(outfile, "w", encoding="utf-8", newline="") as datafile:
-                datafile.writelines(to_csv_lines(headers, rows))
-        except OSError as exc:
+            path = output_path(outdir, synchronization_filename(source, target, code))
+            destinations = resolve_destinations(self.parent, [(path,)])
+            if destinations is None:
+                return
+            destination, = destinations
+            write = partial(write_lines, lines=to_csv_lines(headers, rows), newline="")
+            write_outputs([(destination, write)])
+        except (OSError, ValueError) as exc:
             tkinter.messagebox.showerror(
                 title="Could not write synchronization CSV",
                 message=str(exc),
+                parent=self.parent,
             )
             return
 
         tkinter.messagebox.showinfo(title="Synchronization CSV written",
-                                    message=outfile)
+                                    message=str(destination.path), parent=self.parent)

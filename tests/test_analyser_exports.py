@@ -4,6 +4,7 @@ from types import SimpleNamespace
 import pytest
 from scyseq.sequence import Alphabet, Sequence
 
+from scyseqtools.analyser import save_dialog, synchronization
 from scyseqtools.analyser.methods import Method
 from scyseqtools.analyser.symbolix import Symbolix
 
@@ -20,9 +21,11 @@ def sequence_records(file_count, site, code, values):
     ]
 
 
-def launch_export(result, name, records, tmp_path, monkeypatch):
+def launch_export(result, name, records, tmp_path, monkeypatch, *, existing=()):
     output_dir = tmp_path / "exports"
-    output_dir.mkdir()
+    output_dir.mkdir(exist_ok=True)
+    for filename in existing:
+        (output_dir / filename).write_text(f"original {filename}")
     monkeypatch.setattr(
         "scyseqtools.analyser.methods.tkinter.filedialog.askdirectory",
         lambda **kwargs: str(output_dir),
@@ -47,6 +50,57 @@ def launch_export(result, name, records, tmp_path, monkeypatch):
     }
     method.launch()
     return output_dir, method.metadata
+
+
+def test_finish_codix_batch_only_after_all_conflicts_are_resolved(tmp_path, monkeypatch):
+    records = sequence_records(3, "Aidant", "gaze", [0, 1, 0, 1])
+    result = Symbolix().change_code(records, "recoded", [1, 0], ["present", "absent"])
+    first, second, third = (export.filename for export in result.files)
+    choices = iter(["rename", "cancel", "rename", "replace"])
+
+    def conflict(parent, filenames, existing, replace, rename):
+        choice = next(choices)
+        if choice == "rename":
+            assert filenames == (second,)
+            with pytest.raises(ValueError, match="already in use"):
+                rename(first)
+            destinations = rename("alternative")
+        else:
+            assert filenames == (third,)
+            destinations = replace if choice == "replace" else None
+        return SimpleNamespace(result=destinations)
+
+    monkeypatch.setattr(save_dialog, "_SaveConflictDialog", conflict)
+    out, _ = launch_export(result, "change_code", records, tmp_path, monkeypatch,
+                           existing=(second, third))
+    assert {path.name: path.read_text() for path in out.iterdir()} == {
+        second: f"original {second}", third: f"original {third}",
+    }
+
+    launch_export(result, "change_code", records, tmp_path, monkeypatch)
+    assert (out / second).read_text() == f"original {second}"
+    for index, filename in enumerate((first, "alternative.cdx", third)):
+        assert json.loads((out / filename).read_text())["media"] == f"recording-{index}.mp4"
+
+
+def test_synchronization_reports_its_renamed_path(tmp_path, monkeypatch):
+    tool = synchronization.SynchronizationTool.__new__(synchronization.SynchronizationTool)
+    tool.parent = SimpleNamespace(cwd=tmp_path)
+    tool.selected_files, tool.gdata = [], {}
+    tool.source_choice, tool.target_choice, tool.code_choice = "first", "second", "activity"
+    tool._selected_value = lambda choice: choice
+    original = tmp_path / synchronization.synchronization_filename("first", "second", "activity")
+    original.write_text("original")
+    monkeypatch.setattr(synchronization.tkinter.filedialog, "askdirectory", lambda **kw: str(tmp_path))
+    monkeypatch.setattr(synchronization, "build_synchronization_table",
+                        lambda *args: (["Value"], [(42,)]))
+    monkeypatch.setattr(save_dialog, "_SaveConflictDialog", lambda *args: SimpleNamespace(result=args[-1]("new")))
+    messages = []
+    monkeypatch.setattr(synchronization.tkinter.messagebox, "showinfo", lambda **kw: messages.append(kw["message"]))
+    tool.launch()
+    assert original.read_text() == "original"
+    assert (tmp_path / "new.csv").read_text() == "Value\n42\n"
+    assert messages == [str(tmp_path / "new.csv")]
 
 
 @pytest.mark.parametrize("file_count", [1, 2, 3])

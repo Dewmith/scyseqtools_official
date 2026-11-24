@@ -12,6 +12,7 @@ import webbrowser
 import Pmw
 
 from scyseqtools.analyser.charts import RecordingTracks
+from scyseqtools.analyser.save_dialog import resolve_destinations
 
 
 def scrollable_page(tab):
@@ -40,6 +41,7 @@ class ResultPanel(ttk.LabelFrame):
         super().__init__(master, text="Latest result", padding=5)
         self.result = None
         self.folder = None
+        self.report_path = None
         self.window = None
         self.columnconfigure(0, weight=1)
         self.rowconfigure(3, weight=1)
@@ -99,6 +101,7 @@ class ResultPanel(ttk.LabelFrame):
         self.result = result
         self.initialdir = Path(initialdir)
         self.folder = None
+        self.report_path = None
         self.tree.delete(*self.tree.get_children())
         # Tk column identifiers must be unique, even when source labels repeat.
         columns = result.headers
@@ -184,20 +187,21 @@ class ResultPanel(ttk.LabelFrame):
             if not chosen:
                 return False
             folder = Path(chosen)
-            existing = [p.name for p in self.result.paths(folder) if p.exists()]
-            if existing and not messagebox.askyesno(
-                    "Replace exported files?", "\n".join(existing), default="no", parent=parent):
+            destinations = resolve_destinations(parent, [self.result.paths(folder)])
+            if destinations is None:
                 return False
-            self.result.write(folder)
+            self.result.write(folder, destinations=destinations)
         except (OSError, ValueError) as exc:
             if self.folder is None or self.folder == folder:
                 self.folder = None
+                self.report_path = None
                 self.status.configure(text="Export incomplete")
                 self.open_report.state(["disabled"])
                 self.open_folder.state(["disabled"])
             messagebox.showerror("Could not complete export", str(exc), parent=parent)
             return False
         self.folder = folder
+        self.report_path = destinations[1].path
         self.status.configure(text="Exported")
         self.export_button.configure(text="Export again")
         self.open_report.state(["!disabled"])
@@ -205,7 +209,9 @@ class ResultPanel(ttk.LabelFrame):
         return True
 
     def _open(self, directory):
-        path = self.folder if directory else self.result.paths(self.folder)[1]
+        path = self.folder if directory else self.report_path
+        if path is None:
+            return
         try:
             if not path.exists():
                 raise FileNotFoundError(path)

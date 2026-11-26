@@ -197,7 +197,9 @@ def test_resume_time_formats(launch, session_files, scheme, times, expected):
     code.write_text("{}")  # The on-disk definition has changed since recording.
     app = launch("detached")
     app.retrieve_session()
+    original = path.read_bytes()
     assert app.info.read_data(path)
+    assert path.read_bytes() == original
     assert list(app.code_history.times.values()) == expected
     assert app.goto_recorded_step(1)
     player.set_time.assert_called_with(expected[0])
@@ -213,6 +215,7 @@ def test_resume_time_formats(launch, session_files, scheme, times, expected):
     saved = json.loads(path.read_bytes())
     assert saved["times"] == (times or [0, *expected]) + [expected[1] + 3000]
     assert saved["comments"] == ["first", "", "continued"]
+    assert saved.get("timestamps_estimated", False) == (not times)
 
 
 @tk_window

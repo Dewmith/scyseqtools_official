@@ -2,8 +2,10 @@
 
 from dataclasses import dataclass
 from decimal import Decimal, InvalidOperation
+from hashlib import sha256
 import ntpath
-from pathlib import PureWindowsPath
+import os
+from pathlib import Path, PureWindowsPath
 import posixpath
 
 
@@ -19,13 +21,45 @@ class Track:
 
 
 def _media_reference(value):
-    if not isinstance(value, str):
+    if not isinstance(value, str) or "\0" in value:
         return None
     if PureWindowsPath(value).is_absolute():
         return "windows", ntpath.normcase(ntpath.normpath(value))
     if posixpath.isabs(value):
         return "posix", posixpath.normpath(value)
     return None
+
+
+def _media_digest(reference):
+    kind, filename = reference
+    if (os.name == "nt") != (kind == "windows"):
+        return None
+    try:
+        path = Path(filename)
+        if not path.is_file() or path.stat().st_size == 0:
+            return None
+        digest = sha256()
+        with path.open("rb") as stream:
+            for chunk in iter(lambda: stream.read(1024 * 1024), b""):
+                digest.update(chunk)
+        return digest.digest()
+    except OSError:
+        return None
+
+
+def verify_common_media(first, second, digests):
+    """Verify stored absolute references, hashing accessible copies once per run."""
+    a, b = _media_reference(first), _media_reference(second)
+    if a is None or b is None:
+        raise ValueError("Both CDX files need an absolute media reference to verify the recording.")
+    if a == b:
+        return
+    for reference in (a, b):
+        if reference not in digests:
+            digests[reference] = _media_digest(reference)
+    if digests[a] is None or digests[a] != digests[b]:
+        raise ValueError("Could not verify a common media timeline. The stored media paths differ, "
+                         "and the files could not be verified as identical copies.")
 
 
 def _timestamps(record, track, length):

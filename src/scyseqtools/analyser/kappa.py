@@ -10,14 +10,21 @@ import tkinter
 import tkinter.filedialog
 import tkinter.messagebox
 from tkinter import ttk
+from tkinter.scrolledtext import ScrolledText
+from tkinter.simpledialog import Dialog
 
 import numpy as np
 import Pmw
 
 from scyseqtools.analyser.timed_kappa import Timeline, parse_tolerance, time_agreement
 from scyseqtools.analyser.charts import CountHeatmap, RecordingTracks
+from scyseqtools.analyser.pairing import verify_common_media
 from scyseqtools.analyser.reports import AnalysisResult, Detail
 from scyseqtools.analyser.resultpanel import ResultPanel, scrollable_page
+from scyseqtools.analyser.sample_alignment import (
+    RecordingClock, SampleAlignment, match_sample_clocks, recording_overlap,
+    require_matching_periods,
+)
 
 
 TABLE_EXT = ".csv"
@@ -172,36 +179,132 @@ def _validate_selection(files, site_codes):
         raise ValueError("Select at least one site/code for kappa.")
 
 
-def sequence_kappa_result(files, data, site_codes):
-    """Build the wide, sequence-based kappa table."""
+def _prepare_comparisons(files, data, metadata, site_codes, *, duration_weighted=False):
+    """Check the entire selection before seeking confirmation or computing scores."""
+    _validate_selection(files, site_codes)
+    sequences, clocks, alphabets = {}, {}, {}
+    for filename in files:
+        for site, code in site_codes:
+            seq = _get_sequence(data, filename, site, code)
+            context = f"{filename}, {site}/{code}"
+            if not len(seq):
+                raise ValueError(f"{context} has no coded observations.")
+            labels = _alphabet_labels(seq)
+            if labels and alphabets.setdefault((site, code), labels) != labels:
+                raise ValueError(f"{context} has an incompatible coding alphabet.")
+            sequences[filename, site, code] = seq
+            if filename not in clocks:
+                clocks[filename] = RecordingClock.from_metadata(
+                    metadata.get(filename, {}), len(seq), context)
+            clock = clocks[filename]
+            expected_count = len(clock.times) if clock.notice else len(clock.times) - 1
+            if clock.times and len(seq) != expected_count:
+                raise ValueError(f"{context} has invalid timestamp metadata. Its observation count "
+                                 "does not match the recording clock.")
+
+    legacy = [f"{name} — {clock.notice}" for name, clock in clocks.items() if clock.notice]
+    if legacy and (duration_weighted or len(legacy) != len(files)):
+        raise ValueError("Complete media timestamps are required for this selection.\n\n"
+                         + "\n".join(legacy))
+
+    comparisons, digests = {}, {}
+    for first, second in iter_file_pairs(files):
+        a, b = clocks[first], clocks[second]
+        try:
+            verify_common_media(metadata.get(first, {}).get("media"),
+                                metadata.get(second, {}).get("media"), digests)
+            if legacy:
+                require_matching_periods(a, b)
+                if a.times and b.times and a.times != b.times:
+                    raise ValueError("The available legacy timestamps differ. "
+                                     "They do not support index-based comparison.")
+                for site, code in site_codes:
+                    size_a = len(sequences[first, site, code])
+                    size_b = len(sequences[second, site, code])
+                    if size_a != size_b:
+                        raise ValueError(f"{site}/{code} sequences must have the same length "
+                                         "for index-based comparison.")
+                comparisons[first, second] = None
+            elif duration_weighted:
+                comparisons[first, second] = recording_overlap(a, b)
+            else:
+                comparisons[first, second] = match_sample_clocks(a, b)
+        except ValueError as exc:
+            raise ValueError(f"{first} and {second}\n\n{exc}") from exc
+    return comparisons, legacy
+
+
+def _interval_text(bounds, *, seconds=False):
+    start, end = bounds
+    if seconds:
+        return f"{start / 1000:.3f}–{end / 1000:.3f} seconds"
+    return f"{start}–{end} ms"
+
+
+def _window_text(first, second, overlap, compared, *, seconds=False):
+    return "\n".join([
+        f"{first} · {_interval_text(overlap.first, seconds=seconds)}",
+        f"{second} · {_interval_text(overlap.second, seconds=seconds)}",
+        f"Common interval · {_interval_text(overlap.common, seconds=seconds)}",
+        f"Compared interval · {_interval_text(compared, seconds=seconds)}",
+    ])
+
+
+def _range_confirmation(comparisons):
+    ranges = []
+    for (first, second), window in comparisons.items():
+        overlap = window.overlap if isinstance(window, SampleAlignment) else window
+        if overlap.first != overlap.second:
+            compared = window.compared if isinstance(window, SampleAlignment) else overlap.common
+            ranges.append(_window_text(first, second, overlap, compared, seconds=True))
+    return "\n\n".join(ranges)
+
+
+def sequence_kappa_result(files, data, site_codes, *, comparisons=None):
+    """Build the wide kappa table, applying prepared sample comparisons if supplied."""
     _validate_selection(files, site_codes)
     headers = ["comparison"]
     headers.extend([f"K {site}-{code}" for site, code in site_codes])
     rows, details = [], []
+
+    legacy = comparisons is not None and all(window is None for window in comparisons.values())
+    title = "Sequence-based Kappa" if comparisons is None else "Sample-based Kappa"
+    filename = kappa_filename(site_codes)
+    if legacy:
+        title = "Legacy index-based Kappa"
+        filename = f"{pathlib.Path(filename).stem}_index_based.csv"
 
     for file1, file2 in iter_file_pairs(files):
         stem1 = pathlib.Path(file1).stem
         stem2 = pathlib.Path(file2).stem
         row = [f"{stem1}-{stem2}"]
         group = []
+        alignment = comparisons[file1, file2] if comparisons is not None else None
+        timing = ""
+        if alignment is not None:
+            timing = "\n" + _window_text(file1, file2, alignment.overlap, alignment.compared)
+        elif legacy:
+            timing = "\nCompared by sequence position using the confirmed legacy observation schedule."
 
         for site, code in site_codes:
             seq1 = _get_sequence(data, file1, site, code)
             seq2 = _get_sequence(data, file2, site, code)
+            if alignment is not None:
+                seq1, seq2 = alignment.sequences(seq1, seq2)
             matrix = _sample_matrix(seq1, seq2)
             score = format_kappa(_sample_kappa(matrix))
             row.append(score)
             labels = _alphabet_labels(seq1) or tuple(map(str, range(len(matrix))))
             stream = f"{site} / {code}"
             group.append(Detail(stream, f"{file1} and {file2} · {stream}",
-                                f"Sequence-based κ = {score}. Compared {matrix.sum()} samples. "
-                                "Diagonal cells count matching labels.",
+                                f"{title.replace('Kappa', 'κ')} = {score}. Compared {matrix.sum()} samples. "
+                                f"Diagonal cells count matching labels.{timing}",
                                 CountHeatmap(labels, matrix, file1, file2)))
 
         rows.append(row)
         details.append(group)
 
-    return AnalysisResult("Sequence-based Kappa", kappa_filename(site_codes), headers, rows, details)
+    return AnalysisResult(title, filename, headers, rows, details)
 
 
 def time_kappa_result(files, data, metadata, site_codes, tolerance):
@@ -248,7 +351,10 @@ def time_kappa_result(files, data, metadata, site_codes, tolerance):
                 summary += f"Adjusted κ = {row[9]}. "
             summary += (f"Compared {result.duration} ms · disagreement {result.disagreement} ms · "
                         f"credited {result.credited} ms · tolerance {tolerance} ms. "
-                        f"{first}: {len(a.times) - 1} samples. {second}: {len(b.times) - 1} samples.")
+                        f"{first}: {len(a.times) - 1} samples, {_interval_text((a.times[0], a.times[-1]))}. "
+                        f"{second}: {len(b.times) - 1} samples, {_interval_text((b.times[0], b.times[-1]))}.")
+            if result.start is not None:
+                summary += f" Compared interval · {_interval_text((result.start, result.end))}."
             details.append([Detail(stream, f"{first} and {second} · {stream}",
                                    (summary + " " + result.warning).strip(),
                                    RecordingTracks(first, second, a, b, labels))])
@@ -257,8 +363,15 @@ def time_kappa_result(files, data, metadata, site_codes, tolerance):
                           headers, rows, details)
 
 
-def build_kappa_table(files, data, site_codes):
-    result = sequence_kappa_result(files, data, site_codes)
+def build_kappa_table(files, data, site_codes, *, metadata=None, allow_legacy_index=False):
+    """Build a wide kappa table, using recording clocks when metadata is supplied."""
+    comparisons = None
+    if metadata is not None:
+        comparisons, legacy = _prepare_comparisons(files, data, metadata, site_codes)
+        if legacy and not allow_legacy_index:
+            raise ValueError("Complete media timestamps are required unless legacy index comparison "
+                             "is explicitly enabled.\n\n" + "\n".join(legacy))
+    result = sequence_kappa_result(files, data, site_codes, comparisons=comparisons)
     return result.headers, result.rows
 
 
@@ -289,6 +402,33 @@ def to_csv_lines(headers, rows):
     writer.writerow(headers)
     writer.writerows(rows)
     return buffer.getvalue().splitlines(keepends=True)
+
+
+class _ConfirmKappa(Dialog):
+    def __init__(self, parent, title, message, details):
+        self.message = message
+        self.details = details
+        super().__init__(parent, title=title)
+
+    def body(self, master):
+        ttk.Label(master, text=self.message, wraplength=475, justify="left").pack(
+            anchor="w", padx=8, pady=(6, 8))
+        text = ScrolledText(master, width=63, height=10, wrap="word",
+                            font="TkDefaultFont")
+        text.pack(fill="both", expand=True, padx=8)
+        text.insert("1.0", self.details)
+        text.configure(state="disabled")
+        return text
+
+    def buttonbox(self):
+        buttons = ttk.Frame(self)
+        buttons.pack(pady=8)
+        ttk.Button(buttons, text="Proceed", command=self.ok).pack(side="left", padx=4)
+        ttk.Button(buttons, text="Cancel", command=self.cancel).pack(side="left", padx=4)
+        self.bind("<Escape>", self.cancel)
+
+    def apply(self):
+        self.result = True
 
 
 class KappaTool:
@@ -365,7 +505,7 @@ class KappaTool:
         self.time_aligned = tkinter.BooleanVar(value=False)
         self.tolerance = tkinter.StringVar(value="0")
         self.time_checkbox = tkinter.Checkbutton(
-            options, text="Enable time-aligned Cohen's kappa", variable=self.time_aligned,
+            options, text="Use duration-weighted Kappa", variable=self.time_aligned,
             command=self._toggle_alignment)
         self.time_checkbox.grid(row=0, column=0, sticky="w")
         tkinter.Label(options, text="Timestamp tolerance (ms)").grid(row=0, column=1)
@@ -373,9 +513,9 @@ class KappaTool:
                                          state="disabled")
         self.tolerance_entry.grid(row=0, column=2)
         tkinter.Label(options, justify="left", wraplength=620,
-                      text="Time alignment compares shared recording time. Tolerance allows a "
-                           "local difference between matching behaviour changes. Both files "
-                           "must already use the same recording clock.").grid(
+                      text="By default, Kappa counts observations with matching media intervals. "
+                           "Duration weighting compares shared recording time. Its tolerance "
+                           "can credit small differences between matching behaviour changes.").grid(
                                row=1, column=0, columnspan=3, sticky="w")
 
         launch_but = tkinter.Button(self.tab, text="Compute kappa",
@@ -483,11 +623,33 @@ class KappaTool:
     def launch(self):
         try:
             site_codes = self._selected_site_codes()
-            if self.time_aligned.get():
+            duration_weighted = self.time_aligned.get()
+            tolerance = parse_tolerance(self.tolerance.get()) if duration_weighted else None
+            comparisons, legacy = _prepare_comparisons(
+                self.selected_files, self.gdata, self.metadata, site_codes,
+                duration_weighted=duration_weighted)
+            if legacy:
+                dialog = _ConfirmKappa(
+                    self.tab, "Legacy index-based Kappa",
+                    "These files lack complete media timestamps. Proceed only if you can confirm "
+                    "that the observers coded the same intervals in the same order. "
+                    "Kappa will compare by sequence position.", "\n".join(legacy))
+                if not dialog.result:
+                    return
+            elif ranges := _range_confirmation(comparisons):
+                dialog = _ConfirmKappa(
+                    self.tab, "Different recording time ranges detected",
+                    "Only observations within each pair’s compared interval will contribute to Kappa.",
+                    ranges)
+                if not dialog.result:
+                    return
+
+            if duration_weighted:
                 result = time_kappa_result(self.selected_files, self.gdata, self.metadata,
-                                           site_codes, self.tolerance.get())
+                                           site_codes, tolerance)
             else:
-                result = sequence_kappa_result(self.selected_files, self.gdata, site_codes)
+                result = sequence_kappa_result(self.selected_files, self.gdata, site_codes,
+                                               comparisons=comparisons)
         except (ValueError, IndexError, KeyError) as exc:
             tkinter.messagebox.showerror(title="Could not compute kappa",
                                          message=str(exc), parent=self.tab)

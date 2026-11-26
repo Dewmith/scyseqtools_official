@@ -103,7 +103,7 @@ def test_graphical_workflow_from_cdx_to_exit(tmp_path, monkeypatch, capsys):
     for name in ("A.cdx", "B.cdx"):
         sequence = Sequence([0, 0, 0, 1], Alphabet(["Absent", "Present"]))
         write_codix_export(data_dir / name, {"Room": {"Activity": sequence}},
-                           {"times": [0, 1000, 2000, 3000, 4000]})
+                           {"media": "/study/session.mp4", "times": [0, 1000, 2000, 3000, 4000]})
     choose = Mock(return_value=str(data_dir))
     monkeypatch.setattr(filedialog, "askdirectory", choose)
     decision = Mock(return_value=None)

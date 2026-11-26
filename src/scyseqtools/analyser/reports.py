@@ -49,6 +49,7 @@ class AnalysisResult:
         yield """<style>
 body{font:16px/1.45 system-ui,sans-serif;color:#233748;margin:2rem auto;padding:0 1rem;max-width:76rem}
 h1,h2{line-height:1.2}section{margin:2rem 0}svg{display:block;background:white}
+section>p{white-space:pre-line}
 .scroll{overflow:auto}table{border-collapse:collapse;font-variant-numeric:tabular-nums}
 td,th{padding:.35rem .65rem;border:1px solid #b6c9cd;text-align:left}th{background:#edf4f5}
 @media print{body{margin:0;font-size:9pt}.scroll{overflow:visible}svg{max-width:100%;height:auto}

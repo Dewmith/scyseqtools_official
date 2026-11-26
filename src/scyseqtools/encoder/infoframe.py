@@ -233,6 +233,8 @@ class InfoFrame(tkinter.LabelFrame):
 
         data["code"] = self.application.container["code"]
         resume_state = normalize_resume_data(data)
+        if len(resume_state["times"]) > len(data.get("times", [])):
+            data["timestamps_estimated"] = True
         data["times"] = resume_state["times"]
         data["comments"] = resume_state["comments"]
         self.application.restore_recording(data, resume_state["recorded_steps"])

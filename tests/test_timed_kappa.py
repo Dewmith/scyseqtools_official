@@ -141,7 +141,8 @@ def test_kappa_controls_and_export(tmp_path, monkeypatch, capsys):
         Pmw.initialise(app)
         tab = KappaTool(SimpleNamespace(notebook=Pmw.NoteBook(app), cwd=str(tmp_path)))
         data = {name: {"S": {"C": [0, 1]}} for name in ("A", "B")}
-        metadata = {"A": {"times": [0, 2000, 4000]}, "B": {"times": [0, 2080, 4000]}}
+        metadata = {name: {"times": [0, 2000, 4000], "media": "/study/session.mp4"}
+                    for name in data}
         tab.update_state({"data": data, "files": list(data), "metadata": metadata})
         assert not tab.time_aligned.get() and tab.tolerance.get() == "0"
         assert tab.tolerance_entry.instate(["disabled"])
@@ -150,8 +151,9 @@ def test_kappa_controls_and_export(tmp_path, monkeypatch, capsys):
         assert (tmp_path / "S_C_kappa.csv").read_text().splitlines() == ["comparison;K S-C", "A-B;1"]
         data["B"]["S"]["C"] = [0]
         tab.launch()
-        assert "same length" in error.call_args.kwargs["message"]
+        assert "invalid timestamp metadata" in error.call_args.kwargs["message"]
         data["B"]["S"]["C"] = [0, 1]
+        metadata["B"]["times"] = [0, 2080, 4000]
         tab.time_checkbox.invoke()
         assert not tab.tolerance_entry.instate(["disabled"])
         tab.launch()
@@ -168,6 +170,6 @@ def test_kappa_controls_and_export(tmp_path, monkeypatch, capsys):
             assert ("Adjusted kappa" in headers) == (tolerance != "0")
         del metadata["A"]["times"]
         tab.launch()
-        assert "A, S/C" in error.call_args.kwargs["message"]
+        assert "A — missing observation timestamps" in error.call_args.kwargs["message"]
     finally:
         app.destroy()

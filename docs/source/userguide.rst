@@ -188,8 +188,8 @@ Use these tabs according to the output you need:
 
 * **Kappa** computes agreement for each selected file pair, site, and code.
   Select the sites and codes, then click **Compute kappa**. By default the
-  tab compares equal-length sequences by position and exports the usual
-  wide CSV table. Select a comparison row to see its label-by-label heatmap.
+  tab matches complete observations by their media intervals and exports
+  the wide CSV table. Select a comparison row to see its label-by-label heatmap.
   When several streams were compared, choose the site and code above the
   chart. Each cell counts samples, with the two filenames identifying the axes.
 * **Statistics** summarizes sequence length and label frequencies. Choose a
@@ -231,22 +231,42 @@ and **Open output folder** shows the saved files. A failed export can be
 retried. Closing the app or replacing a pending run offers to export,
 discard, or cancel.
 
-Time-aligned Cohen's kappa
+Sample-based Cohen's kappa
 ^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Choose **Enable time-aligned Cohen's kappa** when both observers annotated
-the same recording using the same clock origin. Each CDX label describes the
-interval from its start timestamp up to the next boundary. A stream with
-``N`` labels requires ``N + 1`` finite, strictly increasing timestamps in
-milliseconds. The two streams can have different lengths and sampling grids.
+Select files whose stored media paths refer to the same recording. If the
+paths differ, the Analyser can verify them when both media files are accessible
+and their contents match. Each CDX label describes the interval from its start
+timestamp up to the next boundary. A stream with ``N`` labels requires
+``N + 1`` finite, strictly increasing media timestamps in milliseconds.
+
+Kappa compares complete intervals with matching start and end boundaries.
+If recording ranges differ, the confirmation shows the overlap and the interval
+that will be used for each affected pair. An observation cut by the edge of an
+overlap can be omitted when the remaining observations match exactly. Different
+sampling periods, incompatible grids, and pairs with no usable overlap stop
+sample-based Kappa. The result details and HTML report record the source ranges,
+the overlap, the compared interval, and the sample count for each site and code.
+
+When all selected files lack complete timestamps, the Analyser can offer legacy
+index-based Kappa. Proceed only if you can confirm that the observers coded the
+same intervals in the same order. The export filename and report identify this
+comparison as index-based.
+
+Duration-weighted Cohen's kappa
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Choose **Use duration-weighted Kappa** to measure agreement by elapsed media
+time. The two streams can have different sampling grids when both sets of
+timestamps define complete observation intervals on the verified media clock.
 
 Strict kappa uses the intersection of the two observation windows on the
 original clock. Within that window each label pair contributes its duration
 to a contingency table. Observed agreement is the diagonal duration divided
 by the compared duration. Expected agreement is the sum, over labels, of
 the products of the two observers' proportions of time in that label.
-Kappa is (observed − expected) / (1 − expected). An empty intersection or
-expected agreement of one yields **N/A** and an explanation.
+Kappa is (observed − expected) / (1 − expected). The Analyser requires a
+positive overlap. Expected agreement of one yields **N/A** and an explanation.
 
 **Timestamp tolerance (ms)** defaults to zero. A positive value requests
 SCYSEQ's boundary-tolerance variant alongside the strict result. Tolerance
